@@ -13,8 +13,9 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "Copy Anywhere Website",
-  description: "Convert AI and PDF content to Markdown or Notion with reliable formatting.",
+  title: "Copy Anywhere – Perfect formatting, everywhere you paste",
+  description:
+    "The most accurate converters for Notion and beyond. Paste ChatGPT conversations, upload PDFs — get perfectly formatted blocks with math, code, tables, and rich text.",
 };
 
 export default function RootLayout({

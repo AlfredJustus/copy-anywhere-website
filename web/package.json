@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "env -u TURBO_CACHE_DIR -u npm_config_devdir TURBO_CACHE_DIR=.next/cache/turbopack next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

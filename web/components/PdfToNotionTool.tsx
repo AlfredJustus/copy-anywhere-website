@@ -1,52 +1,66 @@
 "use client";
 
-import { useMemo, useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { useState, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { NotionSeshPreview } from "@/components/NotionSeshPreview";
-import { convertToBlocks } from "@/lib/core/convert";
+import { parseMarkdownToBlocks, jsonToNotionBlocks } from "@/lib/parity/blockFactory";
+import { buildNotionPayload, blocksToMarkdown } from "@/lib/parity/serialize";
 
-type OcrResponse = {
-  markdown: string;
-  provider?: "gemini" | "mathpix";
-  error?: string;
-};
+const SUPABASE_FUNCTION_URL = "https://cghzhnznfqjasjtimslq.supabase.co/functions/v1/convert-to-notion";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnaHpobnpuZnFqYXNqdGltc2xxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMzI1MzAsImV4cCI6MjA4NTkwODUzMH0.xLuIIaIU9dChoiST8R1yYgGhDdIhArCVMfNme4usH1U";
 
-async function copyNotionMime(payload: string) {
-  const blob = new Blob([payload], { type: "text/_notion-blocks-v3-production" });
-  const item = new ClipboardItem({
-    "text/_notion-blocks-v3-production": blob,
-    "text/plain": new Blob([payload], { type: "text/plain" }),
-  });
-  await navigator.clipboard.write([item]);
-}
+type Phase = "idle" | "processing" | "ready" | "error";
+type CopyFeedback = null | "notion" | "markdown";
 
 export function PdfToNotionTool() {
-  const [status, setStatus] = useState("");
-  const [markdown, setMarkdown] = useState("");
-  const [isWorking, setIsWorking] = useState(false);
+  const [blocks, setBlocks] = useState<any[]>([]);
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [copyFeedback, setCopyFeedback] = useState<CopyFeedback>(null);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [fileName, setFileName] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isDragOver, setIsDragOver] = useState(false);
 
-  const result = useMemo(() => convertToBlocks(markdown, "markdown"), [markdown]);
+  const feedbackTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragCounter = useRef(0);
 
-  const handleFile = async (file: File) => {
-    setStatus("");
-    setIsWorking(true);
+  const flashFeedback = (type: CopyFeedback) => {
+    clearTimeout(feedbackTimer.current);
+    setCopyFeedback(type);
+    feedbackTimer.current = setTimeout(() => setCopyFeedback(null), 2000);
+  };
+
+  const handleFile = useCallback(async (file: File) => {
+    setBlocks([]);
+    setErrorMessage("");
+    setCopyFeedback(null);
+    setFileName(file.name);
+    setPhase("processing");
+    setProgress({ current: 0, total: 0 });
+
     try {
       const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
       pdfjs.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.296/pdf.worker.min.mjs";
+        "https://unpkg.com/pdfjs-dist@5.5.207/legacy/build/pdf.worker.min.mjs";
 
       const data = await file.arrayBuffer();
       const loadingTask = pdfjs.getDocument({ data });
       const pdf = await loadingTask.promise;
+
       if (pdf.numPages > 10) {
-        setStatus("This PDF has more than 10 pages. Please upload 10 pages or fewer.");
-        setIsWorking(false);
+        setErrorMessage("This PDF has more than 10 pages. Please upload 10 pages or fewer.");
+        setPhase("error");
         return;
       }
 
+      setProgress({ current: 0, total: pdf.numPages });
+
       const pageMarkdown: string[] = [];
       for (let i = 1; i <= pdf.numPages; i += 1) {
-        setStatus(`Processing page ${i} of ${pdf.numPages}...`);
+        setProgress({ current: i, total: pdf.numPages });
         const page = await pdf.getPage(i);
         const viewport = page.getViewport({ scale: 1.5 });
         const canvas = document.createElement("canvas");
@@ -56,13 +70,19 @@ export function PdfToNotionTool() {
         canvas.height = Math.ceil(viewport.height);
         await page.render({ canvas, canvasContext: context, viewport }).promise;
 
-        const image = canvas.toDataURL("image/png");
-        const resp = await fetch("/api/ocr", {
+        const imageDataUrl = canvas.toDataURL("image/png");
+        const base64 = imageDataUrl.split(",")[1];
+
+        const resp = await fetch(SUPABASE_FUNCTION_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image }),
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+            "apikey": SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ image: base64 }),
         });
-        const payload = (await resp.json()) as OcrResponse;
+        const payload = await resp.json();
         if (!resp.ok || payload.error) {
           throw new Error(payload.error || `OCR failed on page ${i}.`);
         }
@@ -72,66 +92,227 @@ export function PdfToNotionTool() {
       const combined = pageMarkdown
         .map((text, idx) => `## Page ${idx + 1}\n\n${text || ""}`.trim())
         .join("\n\n");
-      setMarkdown(combined);
-      setStatus(`Done. Converted ${pdf.numPages} page(s).`);
+
+      const intermediate = parseMarkdownToBlocks(combined);
+      const notionBlocks = jsonToNotionBlocks(intermediate);
+      setBlocks(notionBlocks);
+      setPhase("ready");
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "PDF conversion failed.");
-    } finally {
-      setIsWorking(false);
+      setErrorMessage(error instanceof Error ? error.message : "PDF conversion failed.");
+      setPhase("error");
+    }
+  }, []);
+
+  const handleCopyNotion = () => {
+    try {
+      const payload = buildNotionPayload(blocks);
+      const md = blocksToMarkdown(blocks);
+      const listener = (e: Event) => {
+        const ce = e as ClipboardEvent;
+        ce.preventDefault();
+        ce.stopImmediatePropagation();
+        ce.clipboardData?.setData("text/_notion-blocks-v3-production", payload);
+        ce.clipboardData?.setData("text/plain", md);
+      };
+      document.addEventListener("copy", listener, true);
+      try {
+        document.execCommand("copy");
+        flashFeedback("notion");
+      } finally {
+        document.removeEventListener("copy", listener, true);
+      }
+    } catch {
+      /* copy failed silently */
     }
   };
 
+  const handleCopyMarkdown = async () => {
+    try {
+      const md = blocksToMarkdown(blocks);
+      await navigator.clipboard.writeText(md);
+      flashFeedback("markdown");
+    } catch {
+      /* copy failed silently */
+    }
+  };
+
+  const handleReset = () => {
+    setBlocks([]);
+    setPhase("idle");
+    setCopyFeedback(null);
+    setErrorMessage("");
+    setFileName("");
+    setProgress({ current: 0, total: 0 });
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const onDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current += 1;
+    if (e.dataTransfer.types.includes("Files")) {
+      setIsDragOver(true);
+    }
+  }, []);
+
+  const onDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current -= 1;
+    if (dragCounter.current === 0) {
+      setIsDragOver(false);
+    }
+  }, []);
+
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const onDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current = 0;
+    setIsDragOver(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type === "application/pdf") {
+      handleFile(file);
+    }
+  }, [handleFile]);
+
+  const onFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await handleFile(file);
+  }, [handleFile]);
+
+  const dropZoneClass = [
+    "drop-zone",
+    phase === "idle" ? (isDragOver ? "drop-zone--dragover" : "drop-zone--idle") : "",
+    phase === "processing" ? "drop-zone--processing" : "",
+    phase === "ready" ? "drop-zone--collapsed" : "",
+    phase === "error" ? "drop-zone--error" : "",
+  ].filter(Boolean).join(" ");
+
   return (
-    <section className="converter-shell">
-      <div className="converter-grid">
-        <article className="card">
-          <h2>Upload PDF</h2>
-          <p className="muted">
-            Upload a full PDF (max 10 pages). Each page is OCR-processed with Gemini first, then Mathpix fallback.
-          </p>
+    <>
+      <section className={`converter-section ${phase === "ready" ? "converter-section--ready" : ""}`}>
+        <div
+          className={dropZoneClass}
+          onClick={() => phase === "idle" && fileInputRef.current?.click()}
+          onDragEnter={phase === "idle" ? onDragEnter : undefined}
+          onDragLeave={phase === "idle" ? onDragLeave : undefined}
+          onDragOver={phase === "idle" ? onDragOver : undefined}
+          onDrop={phase === "idle" ? onDrop : undefined}
+        >
           <input
+            ref={fileInputRef}
             type="file"
             accept="application/pdf"
-            disabled={isWorking}
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              await handleFile(file);
-            }}
+            className="drop-zone-input"
+            onChange={onFileChange}
+            tabIndex={-1}
           />
-          <p className="status-note">{status}</p>
-        </article>
 
-        <article className="card">
-          <h2>Notion payload</h2>
-          <p className="muted">Copy this as Notion blocks MIME.</p>
-          <textarea className="output-textarea" readOnly value={result.notionPayload} />
-          <div className="button-row">
+          {phase === "idle" && (
+            <>
+              <div className="drop-zone-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <path d="M12 18v-6" />
+                  <path d="M9 15l3-3 3 3" />
+                </svg>
+              </div>
+              <p className="drop-zone-label">Drop your PDF here</p>
+              <p className="drop-zone-hint">or click to browse &mdash; max 10 pages</p>
+            </>
+          )}
+
+          {phase === "processing" && (
+            <div className="pdf-progress-wrap">
+              <p className="pdf-progress-label">
+                Processing page {progress.current} of {progress.total}&#8230;
+              </p>
+              <div className="pdf-progress-bar">
+                <div
+                  className="pdf-progress-fill"
+                  style={{ width: progress.total ? `${(progress.current / progress.total) * 100}%` : "0%" }}
+                />
+              </div>
+              <p className="pdf-progress-file">{fileName}</p>
+            </div>
+          )}
+
+          {phase === "ready" && (
+            <div className="drop-zone-collapsed-inner">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+              <span>{fileName} converted</span>
+              <button className="paste-again-btn" onClick={handleReset}>
+                Upload new
+              </button>
+            </div>
+          )}
+
+          {phase === "error" && (
+            <div className="drop-zone-error-inner">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="15" y1="9" x2="9" y2="15" />
+                <line x1="9" y1="9" x2="15" y2="15" />
+              </svg>
+              <p className="drop-zone-error-msg">{errorMessage}</p>
+              <button className="paste-again-btn" onClick={handleReset}>
+                Try again
+              </button>
+            </div>
+          )}
+        </div>
+
+        {phase === "ready" && blocks.length > 0 && (
+          <div className="result-area">
+            <div className="result-section">
+              <NotionSeshPreview blocks={blocks} />
+            </div>
+          </div>
+        )}
+      </section>
+
+      {phase === "ready" && blocks.length > 0 && createPortal(
+        <div className="action-bar">
+          <div className="action-bar-inner">
             <button
-              className="btn"
-              disabled={!result.blocks.length}
-              onClick={async () => {
-                try {
-                  await copyNotionMime(result.notionPayload);
-                  setStatus("Copied Notion payload to clipboard.");
-                } catch {
-                  setStatus("Copy failed in this browser. Copy JSON manually.");
-                }
-              }}
+              className={`btn btn-copy ${copyFeedback === "notion" ? "btn-copy--success" : ""}`}
+              onClick={handleCopyNotion}
             >
-              Copy to Notion MIME
+              {copyFeedback === "notion" ? (
+                <>
+                  <svg className="btn-check" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                  Copied!
+                </>
+              ) : (
+                "Copy to Notion"
+              )}
             </button>
-            <button className="btn btn-ghost" disabled={!markdown} onClick={() => setMarkdown("")}>
-              Clear
+            <button
+              className={`btn btn-ghost btn-copy ${copyFeedback === "markdown" ? "btn-copy--success" : ""}`}
+              onClick={handleCopyMarkdown}
+            >
+              {copyFeedback === "markdown" ? (
+                <>
+                  <svg className="btn-check" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                  Copied!
+                </>
+              ) : (
+                "Copy as Markdown"
+              )}
             </button>
           </div>
-        </article>
-      </div>
-
-      <article className="card preview-card">
-        <h2>Rendered preview (NotionSesh display style)</h2>
-        <NotionSeshPreview blocks={result.blocks} />
-      </article>
-    </section>
+        </div>
+      , document.body)}
+    </>
   );
 }

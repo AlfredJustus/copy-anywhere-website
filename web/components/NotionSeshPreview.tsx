@@ -1,25 +1,24 @@
 "use client";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import type { ReactNode } from "react";
-import Image from "next/image";
 
-import { getBlockData, parseRichText } from "@/lib/core/blockFactory";
-import type { NotionBlock, RichTextSegment } from "@/lib/core/types";
+import { getBlockData } from "@/lib/parity/serialize";
+import { parseRichText } from "@/lib/parity/blockFactory";
 
-type Props = {
-  blocks: NotionBlock[];
-};
+type Props = { blocks: any[] };
 
 function sanitizeLatex(value: string) {
   return String(value || "").replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
 }
 
-function renderSegment(segment: RichTextSegment, index: number) {
+function renderSegment(segment: any, index: number) {
   const [text, annotations] = segment;
   if (text === "⁍" && annotations) {
-    const eq = annotations.find((a) => a[0] === "e");
+    const eq = annotations.find((a: any) => a[0] === "e");
     const latex = sanitizeLatex(eq?.[1] || "");
     if (!latex) return null;
     let html = "";
@@ -33,23 +32,26 @@ function renderSegment(segment: RichTextSegment, index: number) {
 
   let node: ReactNode = text || "";
   const ann = annotations || [];
-  const link = ann.find((a) => a[0] === "a")?.[1];
-  if (ann.some((a) => a[0] === "c")) node = <code className="ob-rt-code">{node}</code>;
-  if (ann.some((a) => a[0] === "b")) node = <strong className="ob-rt-bold">{node}</strong>;
-  if (ann.some((a) => a[0] === "i")) node = <em className="ob-rt-italic">{node}</em>;
+  const link = ann.find((a: any) => a[0] === "a")?.[1];
+  if (ann.some((a: any) => a[0] === "c")) node = <code className="ob-rt-code">{node}</code>;
+  if (ann.some((a: any) => a[0] === "b")) node = <strong className="ob-rt-bold">{node}</strong>;
+  if (ann.some((a: any) => a[0] === "i")) node = <em className="ob-rt-italic">{node}</em>;
   if (link) {
-    node = (
-      <a className="ob-inline-link" href={link} target="_blank" rel="noreferrer noopener">
-        {node}
-      </a>
-    );
+    node = <a className="ob-inline-link" href={link} target="_blank" rel="noreferrer noopener">{node}</a>;
   }
   return <span key={`txt-${index}`}>{node}</span>;
 }
 
-function renderRichText(titleArray: RichTextSegment[]) {
+function renderRichText(titleArray: any[]) {
   if (!Array.isArray(titleArray) || titleArray.length === 0) return null;
-  return <>{titleArray.map((segment, index) => renderSegment(segment, index))}</>;
+  return <>{titleArray.map((segment: any, index: number) => renderSegment(segment, index))}</>;
+}
+
+function renderTableCell(cell: any): ReactNode {
+  if (Array.isArray(cell) && cell.length > 0 && Array.isArray(cell[0])) {
+    return renderRichText(cell);
+  }
+  return renderRichText(parseRichText(String(cell)));
 }
 
 function renderBlockEquation(latexRaw: string) {
@@ -65,12 +67,12 @@ function renderBlockEquation(latexRaw: string) {
 
 export function NotionSeshPreview({ blocks }: Props) {
   if (!blocks.length) {
-    return <div className="preview-empty">Paste content and click Convert to preview rendered blocks.</div>;
+    return <div className="preview-empty">Paste content to see rendered blocks.</div>;
   }
 
   return (
     <div className="notionsesh-preview">
-      {blocks.map((block, index) => {
+      {blocks.map((block: any, index: number) => {
         const data = getBlockData(block);
         const key = `${block.blockId}-${index}`;
 
@@ -107,17 +109,17 @@ export function NotionSeshPreview({ blocks }: Props) {
               {hasHeader && rows[0] ? (
                 <thead>
                   <tr>
-                    {rows[0].map((cell, cellIdx) => (
-                      <th key={`h-${cellIdx}`}>{renderRichText(parseRichText(String(cell)))}</th>
+                    {rows[0].map((cell: any, cellIdx: number) => (
+                      <th key={`h-${cellIdx}`}>{renderTableCell(cell)}</th>
                     ))}
                   </tr>
                 </thead>
               ) : null}
               <tbody>
-                {rows.slice(start).map((row, rowIdx) => (
+                {rows.slice(start).map((row: any[], rowIdx: number) => (
                   <tr key={`r-${rowIdx}`}>
-                    {row.map((cell, cellIdx) => (
-                      <td key={`c-${rowIdx}-${cellIdx}`}>{renderRichText(parseRichText(String(cell)))}</td>
+                    {row.map((cell: any, cellIdx: number) => (
+                      <td key={`c-${rowIdx}-${cellIdx}`}>{renderTableCell(cell)}</td>
                     ))}
                   </tr>
                 ))}
@@ -128,17 +130,7 @@ export function NotionSeshPreview({ blocks }: Props) {
         if (data.type === "image") {
           const url = data.source?.[0]?.[0];
           if (!url) return null;
-          return (
-            <Image
-              key={key}
-              className="ob-image"
-              src={url}
-              alt="Converted content image"
-              width={1200}
-              height={800}
-              unoptimized
-            />
-          );
+          return <img key={key} className="ob-image" src={url} alt="Converted content" />;
         }
         return <p key={key} className="ob-text">{renderRichText(data.title)}</p>;
       })}
