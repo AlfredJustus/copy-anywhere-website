@@ -8,6 +8,7 @@ import { NotionSeshPreview } from "@/components/NotionSeshPreview";
 import { parseHtmlToBlocks } from "@/lib/parity/htmlParser";
 import { parseMarkdownToBlocks, jsonToNotionBlocks } from "@/lib/parity/blockFactory";
 import { blocksToMarkdown, buildNotionPayload } from "@/lib/parity/serialize";
+import { Button } from "@/components/ui/button";
 
 type Phase = "idle" | "processing" | "ready";
 type CopyFeedback = null | "notion" | "markdown";
@@ -18,6 +19,7 @@ export function ConverterApp() {
   const [copyFeedback, setCopyFeedback] = useState<CopyFeedback>(null);
 
   const feedbackTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const resultRef = useRef<HTMLDivElement>(null);
 
   const parseClipboard = useCallback((html: string, plain: string): any[] | null => {
     let parsed: any[] | null = null;
@@ -54,7 +56,6 @@ export function ConverterApp() {
     processPaste(html, plain);
   }, [processPaste]);
 
-  // Global paste listener — works anywhere on the page
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
       if (phase !== "idle") return;
@@ -69,6 +70,13 @@ export function ConverterApp() {
     document.addEventListener("paste", onPaste);
     return () => document.removeEventListener("paste", onPaste);
   }, [phase, processPaste]);
+
+  useEffect(() => {
+    if (phase === "ready") {
+      const t = setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
+      return () => clearTimeout(t);
+    }
+  }, [phase]);
 
   const flashFeedback = (type: CopyFeedback) => {
     clearTimeout(feedbackTimer.current);
@@ -117,8 +125,8 @@ export function ConverterApp() {
 
   return (
     <>
-      <section className={`converter-section ${phase === "ready" ? "converter-section--ready" : ""}`}>
-        {/* Paste zone — prominent when idle, collapsed when ready */}
+      <section className={`flex flex-col gap-6 ${phase === "ready" ? "pb-24" : ""}`}>
+        {/* Paste zone */}
         <div
           className={`paste-zone ${phase === "idle" ? "paste-zone--idle" : ""} ${phase === "processing" ? "paste-zone--processing" : ""} ${phase === "ready" ? "paste-zone--collapsed" : ""}`}
           tabIndex={0}
@@ -133,9 +141,12 @@ export function ConverterApp() {
                   <path d="M9 14l2 2 4-4" />
                 </svg>
               </div>
-              <p className="paste-zone-label">Paste your ChatGPT content</p>
-              <p className="paste-zone-hint">
-                <kbd>⌘V</kbd> / <kbd>Ctrl+V</kbd> &mdash; anywhere on this page
+              <p className="text-[22px] font-bold text-foreground">Paste your ChatGPT content</p>
+              <p className="mt-2 text-sm font-medium text-muted-foreground">
+                <kbd className="inline-block px-1.5 py-0.5 font-sans text-xs font-bold bg-background border border-border rounded-sm shadow-[0_1px_0_var(--line)]">⌘V</kbd>
+                {" / "}
+                <kbd className="inline-block px-1.5 py-0.5 font-sans text-xs font-bold bg-background border border-border rounded-sm shadow-[0_1px_0_var(--line)]">Ctrl+V</kbd>
+                {" \u2014 anywhere on this page"}
               </p>
             </>
           )}
@@ -145,7 +156,7 @@ export function ConverterApp() {
               <div className="processing-dots">
                 <span /><span /><span />
               </div>
-              <p className="processing-label">Converting&hellip;</p>
+              <p className="text-base font-semibold text-muted-foreground">Converting&hellip;</p>
             </div>
           )}
 
@@ -155,53 +166,55 @@ export function ConverterApp() {
                 <path d="M20 6L9 17l-5-5" />
               </svg>
               <span>Content converted</span>
-              <button className="paste-again-btn" onClick={handleReset}>
+              <Button variant="outline" size="sm" className="ml-auto" onClick={handleReset}>
                 Paste new
-              </button>
+              </Button>
             </div>
           )}
         </div>
 
-        {/* Preview — appears on ready */}
+        {/* Preview */}
         {phase === "ready" && blocks.length > 0 && (
-          <div className="result-area">
-            <div className="result-section">
+          <div className="flex flex-col gap-5 animate-slideUp" ref={resultRef}>
+            <div className="bg-card border border-border rounded-3xl shadow-[var(--shadow)] p-7">
               <NotionSeshPreview blocks={blocks} />
             </div>
           </div>
         )}
       </section>
 
-      {/* Fixed bottom action bar — portalled to body to escape ancestor transforms */}
+      {/* Fixed bottom action bar */}
       {phase === "ready" && blocks.length > 0 && createPortal(
-        <div className="action-bar">
-          <div className="action-bar-inner">
-            <button
-              className={`btn btn-copy ${copyFeedback === "notion" ? "btn-copy--success" : ""}`}
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-6 py-4 animate-barSlideUp z-50">
+          <div className="max-w-[760px] mx-auto flex items-center justify-center gap-3">
+            <Button
+              variant={copyFeedback === "notion" ? "success" : "default"}
+              size="copy"
               onClick={handleCopyNotion}
             >
               {copyFeedback === "notion" ? (
                 <>
-                  <svg className="btn-check" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                  <svg className="animate-checkPop" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                   Copied!
                 </>
               ) : (
                 "Copy to Notion"
               )}
-            </button>
-            <button
-              className={`btn btn-ghost btn-copy ${copyFeedback === "markdown" ? "btn-copy--success" : ""}`}
+            </Button>
+            <Button
+              variant={copyFeedback === "markdown" ? "success" : "ghost"}
+              size="copy"
               onClick={handleCopyMarkdown}
             >
               {copyFeedback === "markdown" ? (
                 <>
-                  <svg className="btn-check" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                  <svg className="animate-checkPop" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                   Copied!
                 </>
               ) : (
                 "Copy as Markdown"
               )}
-            </button>
+            </Button>
           </div>
         </div>
       , document.body)}

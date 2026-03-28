@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
 
 const tools = [
   {
@@ -37,43 +38,53 @@ const tools = [
 
 export default function Home() {
   return (
-    <main className="home-shell">
+    <main className="mx-auto max-w-[760px] px-6 py-12 pb-20 flex flex-col gap-7">
       {/* Hero */}
-      <section className="home-hero">
+      <section className="text-center pt-14 pb-8 px-8">
         <Image
           src="/logo.svg"
           alt="Copy Anywhere"
           width={64}
           height={64}
-          className="home-hero-logo"
+          className="rounded-2xl shadow-[0_4px_20px_rgba(35,25,18,0.08)] mx-auto"
           priority
         />
-        <h1 className="home-hero-title">Copy Anywhere</h1>
-        <p className="home-hero-sub">
+        <h1 className="font-sans text-[52px] font-extrabold leading-none tracking-[-0.05em] mt-5">
+          Copy Anywhere
+        </h1>
+        <p className="mt-3.5 text-muted-foreground text-[19px] leading-relaxed max-w-[44ch] mx-auto">
           Perfect formatting, everywhere you paste. The most accurate converters
           for Notion, Obsidian, and more.
         </p>
       </section>
 
       {/* Tools */}
-      <section className="tools-section">
-        <h2 className="tools-heading">Conversion tools</h2>
-        <div className="tools-grid">
+      <section className="flex flex-col gap-4">
+        <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-muted-foreground">
+          Conversion tools
+        </h2>
+        <div className="flex flex-col gap-4">
           {tools.map((tool) => (
-            <Link key={tool.href} href={tool.href} className="tool-card">
-              <div className="tool-card-icon">{tool.icon}</div>
-              <div className="tool-card-body">
-                <h3 className="tool-card-title">{tool.title}</h3>
-                <p className="tool-card-desc">{tool.description}</p>
-                <div className="tool-card-badges">
+            <Link
+              key={tool.href}
+              href={tool.href}
+              className="flex items-start gap-5 bg-card border border-border rounded-[20px] p-6 shadow-[var(--shadow)] no-underline text-foreground relative transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)] hover:border-primary/25 max-sm:flex-col max-sm:gap-3.5 max-sm:p-5"
+            >
+              <div className="shrink-0 w-11 h-11 flex items-center justify-center bg-secondary rounded-xl text-primary p-2.5 [&_svg]:w-6 [&_svg]:h-6">
+                {tool.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-xl font-bold leading-snug">{tool.title}</h3>
+                <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">
+                  {tool.description}
+                </p>
+                <div className="flex flex-wrap gap-1.5 mt-3">
                   {tool.badges.map((b) => (
-                    <span key={b} className="cap-pill">
-                      {b}
-                    </span>
+                    <Badge key={b}>{b}</Badge>
                   ))}
                 </div>
               </div>
-              <span className="tool-card-cta">
+              <span className="absolute top-6 right-6 inline-flex items-center gap-1.5 text-sm font-semibold text-primary whitespace-nowrap max-sm:static max-sm:mt-2">
                 {tool.cta}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14" />
