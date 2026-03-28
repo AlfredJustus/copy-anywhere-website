@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardAction } from "@/components/ui/card";
 
 const tools = [
   {
@@ -38,59 +39,61 @@ const tools = [
 
 export default function Home() {
   return (
-    <main className="mx-auto max-w-[760px] px-6 py-12 pb-20 flex flex-col gap-7">
+    <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-8">
       {/* Hero */}
-      <section className="text-center pt-14 pb-8 px-8">
+      <section className="text-center pt-10 pb-4">
         <Image
           src="/logo.svg"
           alt="Copy Anywhere"
-          width={64}
-          height={64}
-          className="rounded-2xl shadow-[0_4px_20px_rgba(35,25,18,0.08)] mx-auto"
+          width={56}
+          height={56}
+          className="rounded-xl shadow-logo mx-auto"
           priority
         />
-        <h1 className="font-sans text-[52px] font-extrabold leading-none tracking-[-0.05em] mt-5">
+        <h1 className="font-serif text-4xl font-bold tracking-tight mt-4">
           Copy Anywhere
         </h1>
-        <p className="mt-3.5 text-muted-foreground text-[19px] leading-relaxed max-w-[44ch] mx-auto">
+        <p className="mt-2 text-muted-foreground text-sm leading-relaxed max-w-md mx-auto">
           Perfect formatting, everywhere you paste. The most accurate converters
           for Notion, Obsidian, and more.
         </p>
       </section>
 
       {/* Tools */}
-      <section className="flex flex-col gap-4">
-        <h2 className="text-sm font-bold uppercase tracking-[0.08em] text-muted-foreground">
+      <section className="flex flex-col gap-3">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground px-1">
           Conversion tools
         </h2>
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           {tools.map((tool) => (
-            <Link
-              key={tool.href}
-              href={tool.href}
-              className="flex items-start gap-5 bg-card border border-border rounded-[20px] p-6 shadow-[var(--shadow)] no-underline text-foreground relative transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)] hover:border-primary/25 max-sm:flex-col max-sm:gap-3.5 max-sm:p-5"
-            >
-              <div className="shrink-0 w-11 h-11 flex items-center justify-center bg-secondary rounded-xl text-primary p-2.5 [&_svg]:w-6 [&_svg]:h-6">
-                {tool.icon}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-xl font-bold leading-snug">{tool.title}</h3>
-                <p className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">
-                  {tool.description}
-                </p>
-                <div className="flex flex-wrap gap-1.5 mt-3">
-                  {tool.badges.map((b) => (
-                    <Badge key={b}>{b}</Badge>
-                  ))}
-                </div>
-              </div>
-              <span className="absolute top-6 right-6 inline-flex items-center gap-1.5 text-sm font-semibold text-primary whitespace-nowrap max-sm:static max-sm:mt-2">
-                {tool.cta}
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14" />
-                  <path d="M12 5l7 7-7 7" />
-                </svg>
-              </span>
+            <Link key={tool.href} href={tool.href} className="no-underline text-inherit">
+              <Card className="transition-all hover:ring-primary/25 hover:shadow-card">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="shrink-0 size-9 flex items-center justify-center bg-secondary rounded-lg text-primary [&_svg]:size-5">
+                      {tool.icon}
+                    </div>
+                    <CardTitle className="text-base font-semibold">{tool.title}</CardTitle>
+                  </div>
+                  <CardAction>
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                      {tool.cta}
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12h14" />
+                        <path d="M12 5l7 7-7 7" />
+                      </svg>
+                    </span>
+                  </CardAction>
+                  <CardDescription>{tool.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-1.5">
+                    {tool.badges.map((b) => (
+                      <Badge key={b} variant="secondary">{b}</Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </Link>
           ))}
         </div>

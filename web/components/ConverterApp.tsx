@@ -9,6 +9,7 @@ import { parseHtmlToBlocks } from "@/lib/parity/htmlParser";
 import { parseMarkdownToBlocks, jsonToNotionBlocks } from "@/lib/parity/blockFactory";
 import { blocksToMarkdown, buildNotionPayload } from "@/lib/parity/serialize";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 type Phase = "idle" | "processing" | "ready";
 type CopyFeedback = null | "notion" | "markdown";
@@ -125,7 +126,7 @@ export function ConverterApp() {
 
   return (
     <>
-      <section className={`flex flex-col gap-6 ${phase === "ready" ? "pb-24" : ""}`}>
+      <section className={`flex flex-col gap-4 ${phase === "ready" ? "pb-20" : ""}`}>
         {/* Paste zone */}
         <div
           className={`paste-zone ${phase === "idle" ? "paste-zone--idle" : ""} ${phase === "processing" ? "paste-zone--processing" : ""} ${phase === "ready" ? "paste-zone--collapsed" : ""}`}
@@ -135,17 +136,17 @@ export function ConverterApp() {
           {phase === "idle" && (
             <>
               <div className="paste-zone-icon">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="9" y="2" width="6" height="4" rx="1" />
                   <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2" />
                   <path d="M9 14l2 2 4-4" />
                 </svg>
               </div>
-              <p className="text-[22px] font-bold text-foreground">Paste your ChatGPT content</p>
-              <p className="mt-2 text-sm font-medium text-muted-foreground">
-                <kbd className="inline-block px-1.5 py-0.5 font-sans text-xs font-bold bg-background border border-border rounded-sm shadow-[0_1px_0_var(--line)]">⌘V</kbd>
+              <p className="text-base font-semibold text-foreground">Paste your ChatGPT content</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                <kbd className="inline-block px-1 py-px font-mono text-[10px] font-medium bg-muted border border-border rounded-sm">⌘V</kbd>
                 {" / "}
-                <kbd className="inline-block px-1.5 py-0.5 font-sans text-xs font-bold bg-background border border-border rounded-sm shadow-[0_1px_0_var(--line)]">Ctrl+V</kbd>
+                <kbd className="inline-block px-1 py-px font-mono text-[10px] font-medium bg-muted border border-border rounded-sm">Ctrl+V</kbd>
                 {" \u2014 anywhere on this page"}
               </p>
             </>
@@ -156,7 +157,7 @@ export function ConverterApp() {
               <div className="processing-dots">
                 <span /><span /><span />
               </div>
-              <p className="text-base font-semibold text-muted-foreground">Converting&hellip;</p>
+              <p className="text-sm font-medium text-muted-foreground">Converting&hellip;</p>
             </div>
           )}
 
@@ -175,26 +176,28 @@ export function ConverterApp() {
 
         {/* Preview */}
         {phase === "ready" && blocks.length > 0 && (
-          <div className="flex flex-col gap-5 animate-slideUp" ref={resultRef}>
-            <div className="bg-card border border-border rounded-3xl shadow-[var(--shadow)] p-7">
-              <NotionSeshPreview blocks={blocks} />
-            </div>
+          <div className="animate-slideUp" ref={resultRef}>
+            <Card>
+              <CardContent>
+                <NotionSeshPreview blocks={blocks} />
+              </CardContent>
+            </Card>
           </div>
         )}
       </section>
 
       {/* Fixed bottom action bar */}
       {phase === "ready" && blocks.length > 0 && createPortal(
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-6 py-4 animate-barSlideUp z-50">
-          <div className="max-w-[760px] mx-auto flex items-center justify-center gap-3">
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border px-4 py-3 animate-barSlideUp z-50">
+          <div className="max-w-2xl mx-auto flex items-center justify-center gap-2">
             <Button
               variant={copyFeedback === "notion" ? "success" : "default"}
-              size="copy"
+              size="lg"
               onClick={handleCopyNotion}
             >
               {copyFeedback === "notion" ? (
                 <>
-                  <svg className="animate-checkPop" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                  <svg className="animate-checkPop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                   Copied!
                 </>
               ) : (
@@ -202,13 +205,13 @@ export function ConverterApp() {
               )}
             </Button>
             <Button
-              variant={copyFeedback === "markdown" ? "success" : "ghost"}
-              size="copy"
+              variant={copyFeedback === "markdown" ? "success" : "outline"}
+              size="lg"
               onClick={handleCopyMarkdown}
             >
               {copyFeedback === "markdown" ? (
                 <>
-                  <svg className="animate-checkPop" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                  <svg className="animate-checkPop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                   Copied!
                 </>
               ) : (

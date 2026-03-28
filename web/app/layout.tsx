@@ -3,12 +3,12 @@ import { DM_Sans, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 
 const dmSans = DM_Sans({
-  variable: "--font-sans",
+  variable: "--font-dm-sans",
   subsets: ["latin"],
 });
 
 const sourceSerif = Source_Serif_4({
-  variable: "--font-serif",
+  variable: "--font-source-serif",
   subsets: ["latin"],
 });
 

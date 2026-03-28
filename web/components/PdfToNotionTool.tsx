@@ -8,6 +8,7 @@ import { NotionSeshPreview } from "@/components/NotionSeshPreview";
 import { parseMarkdownToBlocks, jsonToNotionBlocks } from "@/lib/parity/blockFactory";
 import { buildNotionPayload, blocksToMarkdown } from "@/lib/parity/serialize";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 const SUPABASE_FUNCTION_URL = "https://cghzhnznfqjasjtimslq.supabase.co/functions/v1/convert-to-notion";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnaHpobnpuZnFqYXNqdGltc2xxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMzI1MzAsImV4cCI6MjA4NTkwODUzMH0.xLuIIaIU9dChoiST8R1yYgGhDdIhArCVMfNme4usH1U";
@@ -206,7 +207,7 @@ export function PdfToNotionTool() {
 
   return (
     <>
-      <section className={`flex flex-col gap-6 ${phase === "ready" ? "pb-24" : ""}`}>
+      <section className={`flex flex-col gap-4 ${phase === "ready" ? "pb-20" : ""}`}>
         <div
           className={dropZoneClass}
           onClick={() => phase === "idle" && fileInputRef.current?.click()}
@@ -227,15 +228,15 @@ export function PdfToNotionTool() {
           {phase === "idle" && (
             <>
               <div className="drop-zone-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                   <polyline points="14 2 14 8 20 8" />
                   <path d="M12 18v-6" />
                   <path d="M9 15l3-3 3 3" />
                 </svg>
               </div>
-              <p className="text-[22px] font-bold text-foreground">Drop your PDF here</p>
-              <p className="mt-2 text-sm font-medium text-muted-foreground">or click to browse &mdash; max 10 pages</p>
+              <p className="text-base font-semibold text-foreground">Drop your PDF here</p>
+              <p className="mt-1 text-xs text-muted-foreground">or click to browse &mdash; max 10 pages</p>
             </>
           )}
 
@@ -282,26 +283,28 @@ export function PdfToNotionTool() {
         </div>
 
         {phase === "ready" && blocks.length > 0 && (
-          <div className="flex flex-col gap-5 animate-slideUp" ref={resultRef}>
-            <div className="bg-card border border-border rounded-3xl shadow-[var(--shadow)] p-7">
-              <NotionSeshPreview blocks={blocks} />
-            </div>
+          <div className="animate-slideUp" ref={resultRef}>
+            <Card>
+              <CardContent>
+                <NotionSeshPreview blocks={blocks} />
+              </CardContent>
+            </Card>
           </div>
         )}
       </section>
 
       {/* Fixed bottom action bar */}
       {phase === "ready" && blocks.length > 0 && createPortal(
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-6 py-4 animate-barSlideUp z-50">
-          <div className="max-w-[760px] mx-auto flex items-center justify-center gap-3">
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border px-4 py-3 animate-barSlideUp z-50">
+          <div className="max-w-2xl mx-auto flex items-center justify-center gap-2">
             <Button
               variant={copyFeedback === "notion" ? "success" : "default"}
-              size="copy"
+              size="lg"
               onClick={handleCopyNotion}
             >
               {copyFeedback === "notion" ? (
                 <>
-                  <svg className="animate-checkPop" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                  <svg className="animate-checkPop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                   Copied!
                 </>
               ) : (
@@ -309,13 +312,13 @@ export function PdfToNotionTool() {
               )}
             </Button>
             <Button
-              variant={copyFeedback === "markdown" ? "success" : "ghost"}
-              size="copy"
+              variant={copyFeedback === "markdown" ? "success" : "outline"}
+              size="lg"
               onClick={handleCopyMarkdown}
             >
               {copyFeedback === "markdown" ? (
                 <>
-                  <svg className="animate-checkPop" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                  <svg className="animate-checkPop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                   Copied!
                 </>
               ) : (
