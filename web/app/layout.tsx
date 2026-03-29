@@ -79,6 +79,10 @@ export default function RootLayout({
         {children}
         </div>
         <footer className="mx-auto max-w-2xl px-6 py-6 text-center text-xs text-muted-foreground flex items-center justify-center gap-3">
+          <a href="/extension" className="hover:text-foreground transition-colors">
+            Chrome Extension
+          </a>
+          <span aria-hidden="true">·</span>
           <a href="/privacy" className="hover:text-foreground transition-colors">
             Privacy Policy
           </a>

@@ -12,9 +12,11 @@ export function SiteHeader() {
       ? { href: "/tools", label: "Browse all converters" }
       : pathname === "/tools"
         ? null
-        : pathname === "/privacy"
+        : pathname === "/privacy" || pathname === "/terms"
           ? { href: "/", label: "Back to app" }
-          : { href: "/tools", label: "All tools" };
+          : pathname === "/extension"
+            ? { href: "/", label: "Try the web app" }
+            : { href: "/tools", label: "All tools" };
 
   const handleLogoClick = () => {
     if (pathname === "/") {
@@ -42,14 +44,24 @@ export function SiteHeader() {
             Copy Anywhere
           </span>
         </Link>
-        {rightLink && (
-          <Link
-            href={rightLink.href}
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {rightLink.label}
-          </Link>
-        )}
+        <div className="flex items-center gap-4">
+          {pathname !== "/extension" && (
+            <Link
+              href="/extension"
+              className="text-sm font-medium text-muted-foreground/70 hover:text-foreground transition-colors"
+            >
+              Extension
+            </Link>
+          )}
+          {rightLink && (
+            <Link
+              href={rightLink.href}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {rightLink.label}
+            </Link>
+          )}
+        </div>
       </div>
     </header>
   );
