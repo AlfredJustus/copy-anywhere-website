@@ -10,12 +10,12 @@ const f = FORMATS.pdf;
 const formatSlug = "pdf";
 
 export const metadata: Metadata = {
-  title: "Save AI Chats as PDF – Copy Anywhere",
-  description: "Turn any ChatGPT, Claude, or Gemini conversation into a clean, shareable PDF. Math equations rendered with LaTeX, code blocks highlighted, tables intact.",
+  title: "Save as PDF – Copy Anywhere",
+  description: "Drop anything — AI chats, web pages, images, or documents — and get a beautifully formatted PDF. Math rendered with LaTeX, code highlighted, tables intact.",
   alternates: { canonical: "/pdf-download" },
   openGraph: {
-    title: "Save AI Chats as PDF – Copy Anywhere",
-    description: "Turn any ChatGPT, Claude, or Gemini conversation into a clean, shareable PDF. Math equations rendered with LaTeX, code blocks highlighted, tables intact.",
+    title: "Save as PDF – Copy Anywhere",
+    description: "Drop anything — AI chats, web pages, images, or documents — and get a beautifully formatted PDF. Math rendered with LaTeX, code highlighted, tables intact.",
   },
 };
 
@@ -28,7 +28,7 @@ export default function PdfDownloadPage() {
           Save as PDF
         </h1>
         <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
-          Turn any AI conversation into a clean, shareable PDF. Math is compiled with LaTeX, code is highlighted, and tables stay intact.
+          Drop anything — AI chats, web pages, images, or documents. Get a beautifully formatted PDF with LaTeX math, highlighted code, and intact tables.
         </p>
 
         <div className="flex flex-wrap justify-center gap-1.5">
@@ -66,7 +66,7 @@ export default function PdfDownloadPage() {
               className="no-underline text-inherit flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-secondary/60 transition-colors group"
             >
               <LogoIcon src={model.logo} alt="" size={20} shape="bare" />
-              <span className="text-sm font-medium">{model.label} to {f.label}, perfectly formatted</span>
+              <span className="text-sm font-medium">{model.label} to {f.label}</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                 <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
               </svg>
@@ -78,7 +78,7 @@ export default function PdfDownloadPage() {
               className="no-underline text-inherit flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-secondary/60 transition-colors group"
             >
               <LogoIcon src={FORMATS.notion.logo} alt="" size={20} shape="bare" invertDark />
-              <span className="text-sm font-medium">Export Notion Pages to {f.label}</span>
+              <span className="text-sm font-medium">Notion to {f.label}</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                 <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
               </svg>
@@ -92,7 +92,7 @@ export default function PdfDownloadPage() {
                 <circle cx="8.5" cy="8.5" r="1.5" />
                 <polyline points="21 15 16 10 5 21" />
               </svg>
-              <span className="text-sm font-medium">Turn an Image into {f.label}</span>
+              <span className="text-sm font-medium">Image to {f.label}</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                 <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
               </svg>
@@ -106,7 +106,7 @@ export default function PdfDownloadPage() {
         <section>
           <h2 className="text-base font-semibold text-foreground mb-2">How it works</h2>
           <ol className="list-decimal list-inside flex flex-col gap-1.5">
-            <li>Paste from any AI chat, drop a PDF, or drop an image</li>
+            <li>Paste from any website, drop a PDF, or drop an image</li>
             <li>Content is parsed and typeset with LaTeX</li>
             <li>Download your beautifully formatted PDF</li>
           </ol>
@@ -125,7 +125,7 @@ export default function PdfDownloadPage() {
         <section>
           <h2 className="text-base font-semibold text-foreground mb-2">Why use this</h2>
           <p>
-            AI chat responses are markdown that loses formatting when you try to save as PDF.
+            Saving rich content as a PDF usually means screenshots or broken formatting.
             Copy Anywhere typesets everything with LaTeX — so your math, code, and tables
             look publication-quality in the final PDF.
           </p>

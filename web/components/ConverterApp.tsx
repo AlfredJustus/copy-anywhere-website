@@ -81,8 +81,9 @@ export function ConverterApp({ modelSlug = "chatgpt", formatSlug = "notion" }: C
     <section className="flex flex-col gap-4">
       {/* Paste zone */}
       <div
-        className={`paste-zone ${phase === "idle" ? "paste-zone--idle" : ""} ${phase === "processing" ? "paste-zone--processing" : ""} ${phase === "ready" ? "paste-zone--collapsed" : ""}`}
+        className={`paste-zone ${phase === "idle" ? "paste-zone--idle" : ""} ${phase === "processing" ? "paste-zone--processing" : ""} ${phase === "ready" ? "hidden" : ""}`}
         tabIndex={0}
+        aria-label="Paste your content here to convert"
         onPaste={handlePaste}
       >
         {phase === "idle" && (
@@ -113,17 +114,6 @@ export function ConverterApp({ modelSlug = "chatgpt", formatSlug = "notion" }: C
           </div>
         )}
 
-        {phase === "ready" && (
-          <div className="paste-zone-collapsed-inner">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
-            <span>Content converted</span>
-            <Button variant="outline" size="sm" className="ml-auto" onClick={handleReset}>
-              Paste new
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Result */}

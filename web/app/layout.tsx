@@ -61,7 +61,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${sourceSerif.variable}`}>
+    <html lang="en" className={`${dmSans.variable} ${sourceSerif.variable}`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var d=document.documentElement;var m=window.matchMedia('(prefers-color-scheme:dark)');if(m.matches)d.classList.add('dark');m.addEventListener('change',function(e){e.matches?d.classList.add('dark'):d.classList.remove('dark')})}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body>
         <script
           type="application/ld+json"
@@ -71,9 +78,13 @@ export default function RootLayout({
         <div className="pt-14">
         {children}
         </div>
-        <footer className="mx-auto max-w-2xl px-6 py-6 text-center text-xs text-muted-foreground">
+        <footer className="mx-auto max-w-2xl px-6 py-6 text-center text-xs text-muted-foreground flex items-center justify-center gap-3">
           <a href="/privacy" className="hover:text-foreground transition-colors">
             Privacy Policy
+          </a>
+          <span aria-hidden="true">·</span>
+          <a href="/terms" className="hover:text-foreground transition-colors">
+            Terms of Service
           </a>
         </footer>
       </body>

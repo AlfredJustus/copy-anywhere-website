@@ -292,13 +292,6 @@ export function UniversalTool({ formatSlug, onPhaseChange, onReset }: UniversalT
     onReset?.(handleReset);
   }, [onReset, handleReset]);
 
-  // ── Ready-state label ──
-
-  const readyLabel =
-    inputSource === "pdf" ? `${fileName} converted` :
-    inputSource === "image" ? "Image converted" :
-    "Clipboard content converted";
-
   // ── Zone class ──
 
   const zoneClass = [
@@ -334,6 +327,7 @@ export function UniversalTool({ formatSlug, onPhaseChange, onReset }: UniversalT
           ref={zoneRef}
           className={zoneClass}
           tabIndex={0}
+          aria-label="Paste content or drop a file to convert"
           onClick={() => (phase === "idle" || phase === "error") && fileInputRef.current?.click()}
         >
           <input
@@ -378,7 +372,7 @@ export function UniversalTool({ formatSlug, onPhaseChange, onReset }: UniversalT
                   <p className="pdf-progress-file">{fileName}</p>
                 </div>
               ) : (
-                <div className="processing-indicator">
+                <div className="processing-indicator" role="status" aria-live="polite">
                   <div className="processing-dots">
                     <span /><span /><span />
                   </div>

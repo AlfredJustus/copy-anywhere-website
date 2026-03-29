@@ -13,6 +13,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/google-docs`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.9 },
     { url: `${SITE_URL}/notion-import`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.7 },
     { url: `${SITE_URL}/notion-import/google-docs`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.6 },
+    { url: `${SITE_URL}/notion-import/pdf`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.6 },
+    { url: `${SITE_URL}/pdf-download`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.9 },
+    { url: `${SITE_URL}/privacy`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.3 },
+    { url: `${SITE_URL}/terms`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.3 },
   ];
 
   const convertPages: MetadataRoute.Sitemap = modelSlugs.flatMap((model) =>

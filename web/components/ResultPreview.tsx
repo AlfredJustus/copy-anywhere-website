@@ -133,15 +133,20 @@ export function ResultPreview({ blocks, formatSlug, onReset }: ResultPreviewProp
 
   const handleCopy = async () => {
     try {
-      const notionPayload = buildNotionPayload(blocks);
+      const needNotion = !formatSlug || formatSlug === "notion";
+      const needHtml = !formatSlug || formatSlug === "google-docs";
+
+      const notionPayload = needNotion ? buildNotionPayload(blocks) : null;
       const md = blocksToMarkdown(blocks);
-      const html = await buildClipboardHtmlFromBlocks(blocks, getBlockData, sanitizeLatex);
+      const html = needHtml
+        ? await buildClipboardHtmlFromBlocks(blocks, getBlockData, sanitizeLatex)
+        : null;
 
       const listener = (e: Event) => {
         const ce = e as ClipboardEvent;
         ce.preventDefault();
         ce.stopImmediatePropagation();
-        ce.clipboardData?.setData("text/_notion-blocks-v3-production", notionPayload);
+        if (notionPayload) ce.clipboardData?.setData("text/_notion-blocks-v3-production", notionPayload);
         if (html) ce.clipboardData?.setData("text/html", html);
         ce.clipboardData?.setData("text/plain", md);
         ce.clipboardData?.setData("text/markdown", md);
@@ -185,10 +190,12 @@ export function ResultPreview({ blocks, formatSlug, onReset }: ResultPreviewProp
     onReset();
   };
 
-  const orderedLogos = formatSlug
-    ? [...FORMAT_LOGOS].sort((a, b) => (a.key === formatSlug ? -1 : b.key === formatSlug ? 1 : 0))
+  // On format-specific SEO pages, show only that format's logo; on homepage show all
+  const orderedLogos = formatSlug && formatSlug !== "pdf"
+    ? FORMAT_LOGOS.filter((l) => l.key === formatSlug)
     : FORMAT_LOGOS;
 
+  const showPdfTab = !formatSlug || isPdfMode;
   const showingPdf = isPdfMode || viewMode === "pdf";
 
   // ---- PDF viewer body (shared between both modes) ----
@@ -262,50 +269,60 @@ export function ResultPreview({ blocks, formatSlug, onReset }: ResultPreviewProp
     <div className="animate-slideUp rounded-2xl overflow-clip ring-1 ring-border shadow-lg scroll-mt-16" ref={containerRef}>
       {/* Sticky header */}
       <div className="sticky top-14 z-10 bg-card border-b border-border">
-        {/* Tab bar */}
-        <div className="flex items-center justify-between px-5 pt-3 pb-0">
-          <div className="flex gap-0">
-            <button
-              onClick={handleSwitchToBlocks}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                !showingPdf
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Copy
-            </button>
-            <button
-              onClick={handleSwitchToPdf}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                showingPdf
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              PDF
-            </button>
+        {/* Tab bar — only shown when PDF tab is available */}
+        {showPdfTab && (
+          <div className="flex items-center justify-between px-5 pt-3 pb-0">
+            <div className="flex gap-0">
+              <button
+                onClick={handleSwitchToBlocks}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  !showingPdf
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Copy
+              </button>
+              <button
+                onClick={handleSwitchToPdf}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  showingPdf
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                PDF
+              </button>
+            </div>
+            {!showingPdf && (
+              <Button variant="outline" size="sm" onClick={handleReset}>
+                Start over
+              </Button>
+            )}
           </div>
-          <Button variant="outline" size="sm" onClick={handleReset}>
-            Start over
-          </Button>
-        </div>
+        )}
 
         {/* Action bar — contextual to active tab */}
         <div className="px-5 py-3">
           {showingPdf ? (
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={pdfTitle}
-                onChange={(e) => setPdfTitle(e.target.value)}
-                placeholder="Filename"
-                className="flex-1 min-w-0 h-8 rounded-md border border-border bg-background px-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              <span className="text-sm text-muted-foreground shrink-0">.pdf</span>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={pdfTitle}
+                  onChange={(e) => setPdfTitle(e.target.value)}
+                  placeholder="Filename"
+                  className="flex-1 min-w-0 h-8 rounded-md border border-border bg-background px-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <span className="text-sm text-muted-foreground shrink-0">.pdf</span>
+                <Button variant="outline" size="sm" className="shrink-0" onClick={handleReset}>
+                  Start over
+                </Button>
+              </div>
               <Button
                 variant="default"
-                className="shrink-0 gap-2"
+                size="lg"
+                className="w-full gap-2 h-11 text-base"
                 onClick={handlePdfDownload}
                 disabled={!pdfBlob}
               >
@@ -314,11 +331,13 @@ export function ResultPreview({ blocks, formatSlug, onReset }: ResultPreviewProp
               </Button>
             </div>
           ) : (
+            <div className="flex items-center gap-2">
             <Button
               variant={copied ? "success" : "default"}
               size="lg"
-              className="w-full gap-2.5 h-11 text-base"
+              className="flex-1 gap-2.5 h-11 text-base"
               onClick={handleCopy}
+              aria-live="polite"
             >
               {copied ? (
                 <>
@@ -327,22 +346,43 @@ export function ResultPreview({ blocks, formatSlug, onReset }: ResultPreviewProp
                 </>
               ) : (
                 <>
-                  Copy
-                  <span className="flex items-center -space-x-1">
-                    {orderedLogos.map(({ key, logo }) => (
+                  {orderedLogos.length === 1 ? (
+                    <>
                       <LogoIcon
-                        key={key}
-                        src={logo}
+                        src={orderedLogos[0].logo}
                         alt=""
                         size={20}
                         shape="bare"
-                        invertDark={key === "notion"}
+                        invertDark={orderedLogos[0].key === "notion"}
                       />
-                    ))}
-                  </span>
+                      Copy to {FORMATS[orderedLogos[0].key].label}
+                    </>
+                  ) : (
+                    <>
+                      Copy
+                      <span className="flex items-center -space-x-1">
+                        {orderedLogos.map(({ key, logo }) => (
+                          <LogoIcon
+                            key={key}
+                            src={logo}
+                            alt=""
+                            size={20}
+                            shape="bare"
+                            invertDark={key === "notion"}
+                          />
+                        ))}
+                      </span>
+                    </>
+                  )}
                 </>
               )}
             </Button>
+            {!showPdfTab && (
+              <Button variant="outline" size="lg" className="shrink-0 h-11" onClick={handleReset}>
+                Start over
+              </Button>
+            )}
+            </div>
           )}
         </div>
       </div>
