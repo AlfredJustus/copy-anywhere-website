@@ -3,23 +3,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { createPortal } from "react-dom";
 import { NotionSeshPreview } from "@/components/NotionSeshPreview";
+import { CopyActionBar } from "@/components/CopyActionBar";
 import { parseHtmlToBlocks } from "@/lib/parity/htmlParser";
 import { parseMarkdownToBlocks, jsonToNotionBlocks } from "@/lib/parity/blockFactory";
-import { blocksToMarkdown, buildNotionPayload } from "@/lib/parity/serialize";
+import { MODELS, type ModelSlug, type FormatSlug } from "@/lib/config/models";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 type Phase = "idle" | "processing" | "ready";
-type CopyFeedback = null | "notion" | "markdown";
 
-export function ConverterApp() {
+interface ConverterAppProps {
+  modelSlug?: ModelSlug;
+  formatSlug?: FormatSlug;
+}
+
+export function ConverterApp({ modelSlug = "chatgpt", formatSlug = "notion" }: ConverterAppProps) {
   const [blocks, setBlocks] = useState<any[]>([]);
   const [phase, setPhase] = useState<Phase>("idle");
-  const [copyFeedback, setCopyFeedback] = useState<CopyFeedback>(null);
 
-  const feedbackTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const modelLabel = MODELS[modelSlug]?.label ?? "ChatGPT";
+
   const resultRef = useRef<HTMLDivElement>(null);
 
   const parseClipboard = useCallback((html: string, plain: string): any[] | null => {
@@ -79,49 +83,9 @@ export function ConverterApp() {
     }
   }, [phase]);
 
-  const flashFeedback = (type: CopyFeedback) => {
-    clearTimeout(feedbackTimer.current);
-    setCopyFeedback(type);
-    feedbackTimer.current = setTimeout(() => setCopyFeedback(null), 2000);
-  };
-
-  const handleCopyNotion = () => {
-    try {
-      const payload = buildNotionPayload(blocks);
-      const md = blocksToMarkdown(blocks);
-      const listener = (e: Event) => {
-        const ce = e as ClipboardEvent;
-        ce.preventDefault();
-        ce.stopImmediatePropagation();
-        ce.clipboardData?.setData("text/_notion-blocks-v3-production", payload);
-        ce.clipboardData?.setData("text/plain", md);
-      };
-      document.addEventListener("copy", listener, true);
-      try {
-        document.execCommand("copy");
-        flashFeedback("notion");
-      } finally {
-        document.removeEventListener("copy", listener, true);
-      }
-    } catch {
-      /* copy failed silently */
-    }
-  };
-
-  const handleCopyMarkdown = async () => {
-    try {
-      const md = blocksToMarkdown(blocks);
-      await navigator.clipboard.writeText(md);
-      flashFeedback("markdown");
-    } catch {
-      /* copy failed silently */
-    }
-  };
-
   const handleReset = () => {
     setBlocks([]);
     setPhase("idle");
-    setCopyFeedback(null);
   };
 
   return (
@@ -142,7 +106,7 @@ export function ConverterApp() {
                   <path d="M9 14l2 2 4-4" />
                 </svg>
               </div>
-              <p className="text-base font-semibold text-foreground">Paste your ChatGPT content</p>
+              <p className="text-base font-semibold text-foreground">Paste your {modelLabel} content</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 <kbd className="inline-block px-1 py-px font-mono text-[10px] font-medium bg-muted border border-border rounded-sm">⌘V</kbd>
                 {" / "}
@@ -186,41 +150,9 @@ export function ConverterApp() {
         )}
       </section>
 
-      {/* Fixed bottom action bar */}
-      {phase === "ready" && blocks.length > 0 && createPortal(
-        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border px-4 py-3 animate-barSlideUp z-50">
-          <div className="max-w-2xl mx-auto flex items-center justify-center gap-2">
-            <Button
-              variant={copyFeedback === "notion" ? "success" : "default"}
-              size="lg"
-              onClick={handleCopyNotion}
-            >
-              {copyFeedback === "notion" ? (
-                <>
-                  <svg className="animate-checkPop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                  Copied!
-                </>
-              ) : (
-                "Copy to Notion"
-              )}
-            </Button>
-            <Button
-              variant={copyFeedback === "markdown" ? "success" : "outline"}
-              size="lg"
-              onClick={handleCopyMarkdown}
-            >
-              {copyFeedback === "markdown" ? (
-                <>
-                  <svg className="animate-checkPop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                  Copied!
-                </>
-              ) : (
-                "Copy as Markdown"
-              )}
-            </Button>
-          </div>
-        </div>
-      , document.body)}
+      {phase === "ready" && blocks.length > 0 && (
+        <CopyActionBar blocks={blocks} formatSlug={formatSlug} />
+      )}
     </>
   );
 }

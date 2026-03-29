@@ -65,10 +65,45 @@ function renderBlockEquation(latexRaw: string) {
   }
 }
 
+function toRomanNumeral(n: number): string {
+  const vals = [10, 9, 5, 4, 1];
+  const syms = ["x", "ix", "v", "iv", "i"];
+  let r = "";
+  for (let i = 0; i < vals.length; i++) {
+    while (n >= vals[i]) { r += syms[i]; n -= vals[i]; }
+  }
+  return r;
+}
+
+function getNumberedMarker(indent: number, counter: number): string {
+  if (indent === 0) return `${counter}.`;
+  if (indent === 1) return `${String.fromCharCode(96 + ((counter - 1) % 26 + 1))}.`;
+  return `${toRomanNumeral(counter)}.`;
+}
+
+function computeNumberedMarkers(blocks: any[]): Map<number, string> {
+  const markers = new Map<number, string>();
+  const counters = [0, 0, 0];
+  for (let i = 0; i < blocks.length; i++) {
+    const data = getBlockData(blocks[i]);
+    if (data.type === "numbered_list") {
+      const indent = Math.min(data.indent || 0, 2);
+      for (let d = indent + 1; d < 3; d++) counters[d] = 0;
+      counters[indent]++;
+      markers.set(i, getNumberedMarker(indent, counters[indent]));
+    } else {
+      counters[0] = 0; counters[1] = 0; counters[2] = 0;
+    }
+  }
+  return markers;
+}
+
 export function NotionSeshPreview({ blocks }: Props) {
   if (!blocks.length) {
     return <div className="preview-empty">Paste content to see rendered blocks.</div>;
   }
+
+  const numberedMarkers = computeNumberedMarkers(blocks);
 
   return (
     <div className="notionsesh-preview">
@@ -90,7 +125,7 @@ export function NotionSeshPreview({ blocks }: Props) {
         if (data.type === "numbered_list") {
           return (
             <div key={key} className="ob-numbered" data-indent={data.indent || 0}>
-              <span className="ob-num">1.</span>
+              <span className="ob-num">{numberedMarkers.get(index) ?? "1."}</span>
               <span>{renderRichText(data.title)}</span>
             </div>
           );

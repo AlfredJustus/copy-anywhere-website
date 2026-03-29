@@ -279,6 +279,86 @@ a { color: inherit; }
   white-space: nowrap;
 }
 
+/* ===== Universal zone (homepage unified paste/drop) ===== */
+.universal-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xl);
+  background: var(--panel);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.universal-zone--idle {
+  min-height: 320px;
+  padding: 64px 24px;
+  border: 2px dashed var(--line);
+  box-shadow: var(--shadow);
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+.universal-zone--idle:hover {
+  border-color: rgba(212, 115, 74, 0.35);
+  box-shadow: 0 0 0 4px rgba(212, 115, 74, 0.06), var(--shadow);
+}
+
+.universal-zone--idle:focus,
+.universal-zone--idle:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-light), var(--shadow);
+  animation: none;
+}
+
+.universal-zone--dragover {
+  min-height: 320px;
+  padding: 64px 24px;
+  border: 2px solid var(--accent);
+  background: var(--accent-light);
+  box-shadow: 0 0 0 4px var(--accent-light), var(--shadow-lg);
+  transform: scale(1.01);
+}
+
+.universal-zone--processing {
+  min-height: 160px;
+  padding: 40px 24px;
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-light), var(--shadow);
+  cursor: default;
+}
+
+.universal-zone--collapsed {
+  min-height: 0;
+  padding: 14px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  cursor: default;
+}
+
+.universal-zone--error {
+  min-height: 140px;
+  padding: 40px 24px;
+  border: 2px solid #c0392b;
+  box-shadow: 0 0 0 4px rgba(192, 57, 43, 0.08), var(--shadow);
+  cursor: default;
+}
+
+.universal-zone-icon {
+  color: var(--accent);
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.universal-zone-processing {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
 /* ===== Keyframe animations ===== */
 @keyframes pulseGlow {
   0%, 100% { border-color: var(--line); box-shadow: var(--shadow); }
@@ -421,6 +501,7 @@ a { color: inherit; }
 /* ===== Responsive (paste/drop zones) ===== */
 @media (max-width: 640px) {
   .paste-zone--idle, .drop-zone--idle, .drop-zone--dragover { min-height: 200px; padding: 40px 20px; }
+  .universal-zone--idle, .universal-zone--dragover { min-height: 260px; padding: 48px 20px; }
 }
 
 @theme {

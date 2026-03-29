@@ -3,29 +3,28 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { createPortal } from "react-dom";
 import { NotionSeshPreview } from "@/components/NotionSeshPreview";
+import { CopyActionBar } from "@/components/CopyActionBar";
 import { parseMarkdownToBlocks, jsonToNotionBlocks } from "@/lib/parity/blockFactory";
-import { buildNotionPayload, blocksToMarkdown } from "@/lib/parity/serialize";
+import { ocrImage } from "@/lib/ocr";
+import { type FormatSlug } from "@/lib/config/models";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-const SUPABASE_FUNCTION_URL = "https://cghzhnznfqjasjtimslq.supabase.co/functions/v1/convert-to-notion";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnaHpobnpuZnFqYXNqdGltc2xxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMzI1MzAsImV4cCI6MjA4NTkwODUzMH0.xLuIIaIU9dChoiST8R1yYgGhDdIhArCVMfNme4usH1U";
-
 type Phase = "idle" | "processing" | "ready" | "error";
-type CopyFeedback = null | "notion" | "markdown";
 
-export function PdfToNotionTool() {
+interface PdfConverterToolProps {
+  formatSlug?: FormatSlug;
+}
+
+export function PdfConverterTool({ formatSlug = "notion" }: PdfConverterToolProps) {
   const [blocks, setBlocks] = useState<any[]>([]);
   const [phase, setPhase] = useState<Phase>("idle");
-  const [copyFeedback, setCopyFeedback] = useState<CopyFeedback>(null);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [fileName, setFileName] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const feedbackTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -37,16 +36,9 @@ export function PdfToNotionTool() {
     }
   }, [phase]);
 
-  const flashFeedback = (type: CopyFeedback) => {
-    clearTimeout(feedbackTimer.current);
-    setCopyFeedback(type);
-    feedbackTimer.current = setTimeout(() => setCopyFeedback(null), 2000);
-  };
-
   const handleFile = useCallback(async (file: File) => {
     setBlocks([]);
     setErrorMessage("");
-    setCopyFeedback(null);
     setFileName(file.name);
     setPhase("processing");
     setProgress({ current: 0, total: 0 });
@@ -82,25 +74,13 @@ export function PdfToNotionTool() {
 
         const imageDataUrl = canvas.toDataURL("image/png");
         const base64 = imageDataUrl.split(",")[1];
-
-        const resp = await fetch(SUPABASE_FUNCTION_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-            "apikey": SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({ image: base64 }),
-        });
-        const payload = await resp.json();
-        if (!resp.ok || payload.error) {
-          throw new Error(payload.error || `OCR failed on page ${i}.`);
-        }
-        pageMarkdown.push(payload.markdown || "");
+        const markdown = await ocrImage(base64);
+        pageMarkdown.push(markdown);
       }
 
       const combined = pageMarkdown
-        .map((text, idx) => `## Page ${idx + 1}\n\n${text || ""}`.trim())
+        .map((text) => (text || "").trim())
+        .filter(Boolean)
         .join("\n\n");
 
       const intermediate = parseMarkdownToBlocks(combined);
@@ -113,43 +93,9 @@ export function PdfToNotionTool() {
     }
   }, []);
 
-  const handleCopyNotion = () => {
-    try {
-      const payload = buildNotionPayload(blocks);
-      const md = blocksToMarkdown(blocks);
-      const listener = (e: Event) => {
-        const ce = e as ClipboardEvent;
-        ce.preventDefault();
-        ce.stopImmediatePropagation();
-        ce.clipboardData?.setData("text/_notion-blocks-v3-production", payload);
-        ce.clipboardData?.setData("text/plain", md);
-      };
-      document.addEventListener("copy", listener, true);
-      try {
-        document.execCommand("copy");
-        flashFeedback("notion");
-      } finally {
-        document.removeEventListener("copy", listener, true);
-      }
-    } catch {
-      /* copy failed silently */
-    }
-  };
-
-  const handleCopyMarkdown = async () => {
-    try {
-      const md = blocksToMarkdown(blocks);
-      await navigator.clipboard.writeText(md);
-      flashFeedback("markdown");
-    } catch {
-      /* copy failed silently */
-    }
-  };
-
   const handleReset = () => {
     setBlocks([]);
     setPhase("idle");
-    setCopyFeedback(null);
     setErrorMessage("");
     setFileName("");
     setProgress({ current: 0, total: 0 });
@@ -160,18 +106,14 @@ export function PdfToNotionTool() {
     e.preventDefault();
     e.stopPropagation();
     dragCounter.current += 1;
-    if (e.dataTransfer.types.includes("Files")) {
-      setIsDragOver(true);
-    }
+    if (e.dataTransfer.types.includes("Files")) setIsDragOver(true);
   }, []);
 
   const onDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     dragCounter.current -= 1;
-    if (dragCounter.current === 0) {
-      setIsDragOver(false);
-    }
+    if (dragCounter.current === 0) setIsDragOver(false);
   }, []);
 
   const onDragOver = useCallback((e: React.DragEvent) => {
@@ -186,9 +128,7 @@ export function PdfToNotionTool() {
     setIsDragOver(false);
 
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type === "application/pdf") {
-      handleFile(file);
-    }
+    if (file && file.type === "application/pdf") handleFile(file);
   }, [handleFile]);
 
   const onFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -293,41 +233,9 @@ export function PdfToNotionTool() {
         )}
       </section>
 
-      {/* Fixed bottom action bar */}
-      {phase === "ready" && blocks.length > 0 && createPortal(
-        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border px-4 py-3 animate-barSlideUp z-50">
-          <div className="max-w-2xl mx-auto flex items-center justify-center gap-2">
-            <Button
-              variant={copyFeedback === "notion" ? "success" : "default"}
-              size="lg"
-              onClick={handleCopyNotion}
-            >
-              {copyFeedback === "notion" ? (
-                <>
-                  <svg className="animate-checkPop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                  Copied!
-                </>
-              ) : (
-                "Copy to Notion"
-              )}
-            </Button>
-            <Button
-              variant={copyFeedback === "markdown" ? "success" : "outline"}
-              size="lg"
-              onClick={handleCopyMarkdown}
-            >
-              {copyFeedback === "markdown" ? (
-                <>
-                  <svg className="animate-checkPop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                  Copied!
-                </>
-              ) : (
-                "Copy as Markdown"
-              )}
-            </Button>
-          </div>
-        </div>
-      , document.body)}
+      {phase === "ready" && blocks.length > 0 && (
+        <CopyActionBar blocks={blocks} formatSlug={formatSlug} />
+      )}
     </>
   );
 }

@@ -117,14 +117,14 @@ function isMarkdownTableCellEffectivelyEmpty(cell: any): boolean {
 }
 
 export function blocksToMarkdown(blocksArray: any[]): string {
-  const mdBlocks: string[] = [];
+  const mdEntries: { text: string; isList: boolean }[] = [];
   let numCounters = [0, 0, 0];
 
-  function pushMarkdownBlock(linesOrText: string | string[]) {
+  function pushMarkdownBlock(linesOrText: string | string[], isList = false) {
     const blockLines = Array.isArray(linesOrText) ? linesOrText : [linesOrText];
     const filtered = blockLines.filter(line => line != null);
     if (filtered.length === 0) return;
-    mdBlocks.push(filtered.join("\n"));
+    mdEntries.push({ text: filtered.join("\n"), isList });
   }
 
   for (const block of blocksArray) {
@@ -140,7 +140,7 @@ export function blocksToMarkdown(blocksArray: any[]): string {
         pushMarkdownBlock("### " + md); numCounters = [0, 0, 0]; break;
       case "bulleted_list": {
         const indent = data.indent || 0;
-        pushMarkdownBlock("  ".repeat(indent) + "- " + md);
+        pushMarkdownBlock("  ".repeat(indent) + "- " + md, true);
         numCounters = [0, 0, 0]; break;
       }
       case "numbered_list": {
@@ -148,7 +148,7 @@ export function blocksToMarkdown(blocksArray: any[]): string {
         for (let d = indent + 1; d < 3; d++) numCounters[d] = 0;
         numCounters[indent]++;
         const marker = getNumberedMarker(indent, numCounters[indent]);
-        pushMarkdownBlock("  ".repeat(indent) + marker + " " + md);
+        pushMarkdownBlock("  ".repeat(indent) + marker + " " + md, true);
         break;
       }
       case "equation":
@@ -201,7 +201,17 @@ export function blocksToMarkdown(blocksArray: any[]): string {
         pushMarkdownBlock(md); numCounters = [0, 0, 0]; break;
     }
   }
-  return mdBlocks.join("\n\n");
+
+  const parts: string[] = [];
+  for (let i = 0; i < mdEntries.length; i++) {
+    if (i > 0) {
+      const prev = mdEntries[i - 1];
+      const cur = mdEntries[i];
+      parts.push(prev.isList && cur.isList ? "\n" : "\n\n");
+    }
+    parts.push(mdEntries[i].text);
+  }
+  return parts.join("");
 }
 
 // ==================== Build Notion Payload ====================
