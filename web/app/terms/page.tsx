@@ -136,12 +136,7 @@ export default function TermsPage() {
         <Section title="10. Contact">
           <p>
             Questions about these Terms? Reach us at{" "}
-            <a
-              href="mailto:info@copy-anywhere.com"
-              className="underline hover:text-foreground"
-            >
-              info(at)copy-anywhere.com
-            </a>
+            <span className="text-foreground">info(at)copy-anywhere.com</span>
             .
           </p>
         </Section>
