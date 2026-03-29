@@ -140,7 +140,7 @@ export default function TermsPage() {
               href="mailto:info@copy-anywhere.com"
               className="underline hover:text-foreground"
             >
-              info@copy-anywhere.com
+              info(at)copy-anywhere.com
             </a>
             .
           </p>
