@@ -48,7 +48,7 @@ export default function ObsidianPage() {
               className="no-underline text-inherit flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-secondary/60 transition-colors group"
             >
               <LogoIcon src={model.logo} alt="" size={20} shape="bare" />
-              <span className="text-sm font-medium">{model.label} to Obsidian</span>
+              <span className="text-sm font-medium">{model.label} to Obsidian, perfectly formatted</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                 <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
               </svg>
@@ -65,7 +65,7 @@ export default function ObsidianPage() {
                 <line x1="16" y1="13" x2="8" y2="13" />
                 <line x1="16" y1="17" x2="8" y2="17" />
               </svg>
-              <span className="text-sm font-medium">PDF to Obsidian</span>
+              <span className="text-sm font-medium">Convert any PDF to Obsidian</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                 <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
               </svg>
@@ -79,7 +79,7 @@ export default function ObsidianPage() {
                 <circle cx="8.5" cy="8.5" r="1.5" />
                 <polyline points="21 15 16 10 5 21" />
               </svg>
-              <span className="text-sm font-medium">Image to Obsidian</span>
+              <span className="text-sm font-medium">Turn an Image into Obsidian</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                 <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
               </svg>
