@@ -1,4 +1,4 @@
-import { ImageConverterTool } from "@/components/ImageConverterTool";
+import { NotionImportTool } from "@/components/NotionImportTool";
 import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
@@ -17,15 +17,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { format } = await params;
   const formatSlug = format.toLowerCase();
 
-  if (!isValidFormat(formatSlug)) {
-    return { title: "Image Converter – Copy Anywhere" };
+  if (!isValidFormat(formatSlug) || formatSlug === "notion") {
+    return { title: "Notion Import – Copy Anywhere" };
   }
 
   const f = FORMATS[formatSlug];
 
-  const title = `Turn an Image into ${f.label} – Copy Anywhere`;
-  const description = `Upload any image and convert it to ${f.seo} with OCR-powered accuracy. Math, code, tables, and formatting preserved. Free online tool.`;
-  const url = `${SITE_URL}/image/${formatSlug}`;
+  const title = `Export Notion Pages to ${f.label} – Copy Anywhere`;
+  const description = `Import any public Notion page and convert it to ${f.seo}. Math, code, tables, and formatting preserved. Free online tool.`;
+  const url = `${SITE_URL}/notion-import/${formatSlug}`;
 
   return {
     title,
@@ -35,15 +35,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+const ALLOWED_FORMATS: FormatSlug[] = ["google-docs", "pdf"];
+
 export function generateStaticParams() {
-  return Object.keys(FORMATS).map((format) => ({ format }));
+  return ALLOWED_FORMATS.map((format) => ({ format }));
 }
 
-export default async function ImageFormatPage({ params }: Props) {
+export default async function NotionImportFormatPage({ params }: Props) {
   const { format } = await params;
   const formatSlug = format.toLowerCase() as FormatSlug;
 
-  if (!isValidFormat(formatSlug)) redirect("/image/notion");
+  if (!ALLOWED_FORMATS.includes(formatSlug)) redirect("/notion-import");
 
   const f = FORMATS[formatSlug];
 
@@ -52,13 +54,7 @@ export default async function ImageFormatPage({ params }: Props) {
       {/* Header */}
       <header className="flex flex-col items-center text-center gap-3">
         <div className="flex items-center gap-3">
-          <div className="size-10 flex items-center justify-center rounded-lg bg-secondary text-primary [&_svg]:size-6">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <polyline points="21 15 16 10 5 21" />
-            </svg>
-          </div>
+          <LogoIcon src="/logos/notion-logo.svg" alt="Notion" size={40} shape="rounded" invertDark />
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
             <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
           </svg>
@@ -66,17 +62,17 @@ export default async function ImageFormatPage({ params }: Props) {
         </div>
 
         <h1 className="font-serif text-3xl font-bold tracking-tight">
-          Turn an Image into {f.label}
+          Export Notion Pages to {f.label}
         </h1>
 
         <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
-          Upload any image and convert it to {f.seo} with OCR-powered accuracy. Math, tables, and formatting preserved.
+          Import any public Notion page and convert it to {f.seo}. Math, tables, and formatting preserved.
         </p>
 
         <div className="flex flex-wrap justify-center gap-1.5">
           <Badge variant="outline">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
-            OCR powered
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+            Public pages
           </Badge>
           <Badge variant="outline">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 7V4H6l6 8-6 8h12v-3" /></svg>
@@ -90,46 +86,41 @@ export default async function ImageFormatPage({ params }: Props) {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>
             Code blocks
           </Badge>
-          <Badge variant="outline">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
-            PNG, JPG, WEBP
-          </Badge>
         </div>
-
       </header>
 
       {/* Converter tool */}
-      <ImageConverterTool formatSlug={formatSlug} />
+      <NotionImportTool formatSlug={formatSlug} />
 
       {/* SEO content */}
       <article className="flex flex-col gap-6 text-sm text-muted-foreground leading-relaxed mt-4">
         <section>
           <h2 className="text-base font-semibold text-foreground mb-2">How it works</h2>
           <ol className="list-decimal list-inside flex flex-col gap-1.5">
-            <li>Drop or select an image file (PNG, JPG, WEBP, and more)</li>
-            <li>The image is OCR-processed to extract text, math, and tables</li>
-            {formatSlug === "pdf"
-              ? <li>Download your beautifully formatted PDF</li>
-              : <li>Click &ldquo;{f.label}&rdquo; to copy, then paste into {f.label}</li>}
+            <li>Publish your Notion page to the web (Share &rarr; Publish)</li>
+            <li>Paste the page link above</li>
+            <li>Click &ldquo;{f.label}&rdquo; to copy, then paste into {f.label}</li>
           </ol>
         </section>
 
         <section>
           <h2 className="text-base font-semibold text-foreground mb-2">What&apos;s supported</h2>
           <ul className="list-disc list-inside flex flex-col gap-1.5">
-            <li>Math and LaTeX equations — {formatSlug === "pdf" ? "compiled natively by LaTeX" : `rendered perfectly in ${f.label}`}</li>
+            <li>Math and LaTeX equations — rendered perfectly in {f.label}</li>
             <li>Code blocks with syntax highlighting</li>
             <li>Tables with headers and alignment</li>
             <li>Bold, italic, links, and structured text</li>
+            <li>Headings, lists, quotes, and dividers</li>
           </ul>
         </section>
 
         <section>
           <h2 className="text-base font-semibold text-foreground mb-2">Why use this</h2>
           <p>
-            {formatSlug === "pdf"
-              ? "Images lock content in a fixed format. Copy Anywhere uses OCR to extract text, math, and tables, then compiles everything with LaTeX for professional typesetting quality."
-              : `Images lock content in a fixed format that doesn't paste cleanly into ${f.label}. Copy Anywhere uses OCR to extract and reformat everything — so your math, tables, and rich text look perfect inside ${f.label}.`}
+            Moving content out of Notion usually means losing formatting — equations break,
+            tables collapse, and code blocks lose their structure. Copy Anywhere reads the
+            original Notion blocks and rebuilds them in {f.label}-native format so
+            everything pastes perfectly.
           </p>
         </section>
       </article>

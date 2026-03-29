@@ -18,6 +18,8 @@ export const FORMATS = {
     seo: "clean Markdown for Obsidian or any editor" },
   "google-docs": { label: "Google Docs", logo: "/logos/docs.svg",
     seo: "formatted Google Docs content" },
+  pdf: { label: "PDF", logo: "/logos/pdf.svg",
+    seo: "a clean, formatted PDF document" },
 } as const;
 
 export type ModelSlug = keyof typeof MODELS;
@@ -30,6 +32,8 @@ export function isValidModel(slug: string): slug is ModelSlug {
 export function isValidFormat(slug: string): slug is FormatSlug {
   return slug in FORMATS;
 }
+
+export const SITE_URL = "https://copy-anywhere.com";
 
 export const CWS_LISTING_URL =
   "https://chromewebstore.google.com/detail/notionsesh/eilfiamdpkcphkpcaihiclafoecpmodn";

@@ -3,15 +3,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { NotionSeshPreview } from "@/components/NotionSeshPreview";
-import { CopyActionBar } from "@/components/CopyActionBar";
+import { ResultPreview } from "@/components/ResultPreview";
 import { parseMarkdownToBlocks, jsonToNotionBlocks } from "@/lib/parity/blockFactory";
-import { ocrImage, readFileAsBase64 } from "@/lib/ocr";
+import { ocrImage, readFileAsBase64, checkQuota, RateLimitError } from "@/lib/ocr";
 import { type FormatSlug } from "@/lib/config/models";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 
-type Phase = "idle" | "processing" | "ready" | "error";
+type Phase = "idle" | "processing" | "ready" | "error" | "rate-limited";
 
 interface ImageConverterToolProps {
   formatSlug?: FormatSlug;
@@ -26,14 +24,6 @@ export function ImageConverterTool({ formatSlug = "notion" }: ImageConverterTool
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
-  const resultRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (phase === "ready") {
-      const t = setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
-      return () => clearTimeout(t);
-    }
-  }, [phase]);
 
   const handleFile = useCallback(async (file: File) => {
     setBlocks([]);
@@ -42,15 +32,34 @@ export function ImageConverterTool({ formatSlug = "notion" }: ImageConverterTool
     setPhase("processing");
 
     try {
+      const quota = await checkQuota();
+      if (quota.remainingImage <= 0) {
+        setErrorMessage("Daily image limit reached (5 per day). Try again tomorrow.");
+        setPhase("rate-limited");
+        return;
+      }
+
       const base64 = await readFileAsBase64(file);
-      const markdown = await ocrImage(base64);
+      const markdown = await ocrImage(base64, "image");
+
+      if (!markdown.trim()) {
+        setErrorMessage("No text detected in this image. Make sure the image contains readable text.");
+        setPhase("error");
+        return;
+      }
+
       const intermediate = parseMarkdownToBlocks(markdown);
       const notionBlocks = jsonToNotionBlocks(intermediate);
       setBlocks(notionBlocks);
       setPhase("ready");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Image conversion failed.");
-      setPhase("error");
+      if (error instanceof RateLimitError) {
+        setErrorMessage(error.message);
+        setPhase("rate-limited");
+      } else {
+        setErrorMessage(error instanceof Error ? error.message : "Image conversion failed.");
+        setPhase("error");
+      }
     }
   }, []);
 
@@ -75,7 +84,7 @@ export function ImageConverterTool({ formatSlug = "notion" }: ImageConverterTool
 
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
-      if (phase !== "idle") return;
+      if (phase !== "idle" && phase !== "error") return;
       const target = e.target as HTMLElement;
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
 
@@ -133,97 +142,104 @@ export function ImageConverterTool({ formatSlug = "notion" }: ImageConverterTool
     phase === "processing" ? "drop-zone--processing" : "",
     phase === "ready" ? "drop-zone--collapsed" : "",
     phase === "error" ? "drop-zone--error" : "",
+    phase === "rate-limited" ? "drop-zone--rate-limited" : "",
   ].filter(Boolean).join(" ");
 
   return (
-    <>
-      <section className={`flex flex-col gap-4 ${phase === "ready" ? "pb-20" : ""}`}>
-        <div
-          className={dropZoneClass}
-          tabIndex={0}
-          onClick={() => phase === "idle" && fileInputRef.current?.click()}
-          onPaste={phase === "idle" ? handlePaste : undefined}
-          onDragEnter={phase === "idle" ? onDragEnter : undefined}
-          onDragLeave={phase === "idle" ? onDragLeave : undefined}
-          onDragOver={phase === "idle" ? onDragOver : undefined}
-          onDrop={phase === "idle" ? onDrop : undefined}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="drop-zone-input"
-            onChange={onFileChange}
-            tabIndex={-1}
-          />
+    <section className="flex flex-col gap-4">
+      <div
+        className={dropZoneClass}
+        tabIndex={0}
+        onClick={() => (phase === "idle" || phase === "error") && fileInputRef.current?.click()}
+        onPaste={phase === "idle" || phase === "error" ? handlePaste : undefined}
+        onDragEnter={phase === "idle" || phase === "error" ? onDragEnter : undefined}
+        onDragLeave={phase === "idle" || phase === "error" ? onDragLeave : undefined}
+        onDragOver={phase === "idle" || phase === "error" ? onDragOver : undefined}
+        onDrop={phase === "idle" || phase === "error" ? onDrop : undefined}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="drop-zone-input"
+          onChange={onFileChange}
+          tabIndex={-1}
+        />
 
-          {phase === "idle" && (
-            <>
-              <div className="drop-zone-icon">
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
-              </div>
-              <p className="text-base font-semibold text-foreground">Drop or paste your image here</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                <kbd className="inline-block px-1 py-px font-mono text-[10px] font-medium bg-muted border border-border rounded-sm">⌘V</kbd>
-                {" to paste — or click to browse. PNG, JPG, WEBP, and more"}
-              </p>
-            </>
-          )}
-
-          {phase === "processing" && (
-            <div className="processing-indicator">
-              <div className="processing-dots">
-                <span /><span /><span />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">Reading image&hellip;</p>
-            </div>
-          )}
-
-          {phase === "ready" && (
-            <div className="drop-zone-collapsed-inner">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 6L9 17l-5-5" />
+        {phase === "idle" && (
+          <>
+            <div className="drop-zone-icon">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
               </svg>
-              <span>{fileName} converted</span>
-              <Button variant="outline" size="sm" className="ml-auto" onClick={handleReset}>
-                Upload new
-              </Button>
             </div>
-          )}
+            <p className="text-base font-semibold text-foreground">Drop or paste your image here</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              <kbd className="inline-block px-1 py-px font-mono text-[10px] font-medium bg-muted border border-border rounded-sm">⌘V</kbd>
+              {" to paste — or click to browse. PNG, JPG, WEBP, and more"}
+            </p>
+          </>
+        )}
 
-          {phase === "error" && (
-            <div className="drop-zone-error-inner">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="15" y1="9" x2="9" y2="15" />
-                <line x1="9" y1="9" x2="15" y2="15" />
-              </svg>
-              <p className="drop-zone-error-msg">{errorMessage}</p>
-              <Button variant="outline" size="sm" onClick={handleReset}>
-                Try again
-              </Button>
+        {phase === "processing" && (
+          <div className="processing-indicator">
+            <div className="processing-dots">
+              <span /><span /><span />
             </div>
-          )}
-        </div>
-
-        {phase === "ready" && blocks.length > 0 && (
-          <div className="animate-slideUp" ref={resultRef}>
-            <Card>
-              <CardContent>
-                <NotionSeshPreview blocks={blocks} />
-              </CardContent>
-            </Card>
+            <p className="text-sm font-medium text-muted-foreground">Reading image&hellip;</p>
           </div>
         )}
-      </section>
 
+        {phase === "ready" && (
+          <div className="drop-zone-collapsed-inner">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+            <span>{fileName} converted</span>
+            <Button variant="outline" size="sm" className="ml-auto" onClick={handleReset}>
+              Upload new
+            </Button>
+          </div>
+        )}
+
+        {phase === "error" && (
+          <div className="drop-zone-error-inner">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+            <p className="drop-zone-error-msg">{errorMessage}</p>
+            <Button variant="outline" size="sm" onClick={handleReset}>
+              Try again
+            </Button>
+          </div>
+        )}
+
+        {phase === "rate-limited" && (
+          <div className="rate-limit-inner">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <p className="rate-limit-msg">{errorMessage}</p>
+            <p className="rate-limit-sub">
+              Free usage resets daily at midnight UTC. Sign up for higher limits coming soon.
+            </p>
+            <Button variant="outline" size="sm" onClick={handleReset}>
+              Go back
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Result */}
       {phase === "ready" && blocks.length > 0 && (
-        <CopyActionBar blocks={blocks} formatSlug={formatSlug} />
+        <ResultPreview blocks={blocks} formatSlug={formatSlug} onReset={handleReset} />
       )}
-    </>
+    </section>
   );
 }

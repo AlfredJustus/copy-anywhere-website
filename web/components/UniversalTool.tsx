@@ -3,66 +3,39 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { createPortal } from "react-dom";
-import { NotionSeshPreview } from "@/components/NotionSeshPreview";
-import { LogoIcon } from "@/components/LogoIcon";
+import { ResultPreview } from "@/components/ResultPreview";
 import { parseHtmlToBlocks } from "@/lib/parity/htmlParser";
 import { parseMarkdownToBlocks, jsonToNotionBlocks } from "@/lib/parity/blockFactory";
-import { blocksToMarkdown, buildNotionPayload, getBlockData } from "@/lib/parity/serialize";
-import { buildClipboardHtmlFromBlocks } from "@/lib/parity/htmlClipboard";
-import { ocrImage, readFileAsBase64 } from "@/lib/ocr";
-import { FORMATS, type FormatSlug } from "@/lib/config/models";
+import { ocrImage, readFileAsBase64, checkQuota, RateLimitError } from "@/lib/ocr";
+import { type FormatSlug, CWS_LISTING_URL } from "@/lib/config/models";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 
-type Phase = "idle" | "processing" | "ready" | "error";
+type Phase = "idle" | "processing" | "ready" | "error" | "rate-limited";
 type InputSource = "clipboard" | "pdf" | "image";
 
-const sanitizeLatex = (s: string) => s;
-
-const FORMAT_LOGOS: { key: FormatSlug; logo: string }[] = [
-  { key: "notion", logo: FORMATS.notion.logo },
-  { key: "markdown", logo: FORMATS.markdown.logo },
-  { key: "google-docs", logo: FORMATS["google-docs"].logo },
-];
-
-const CheckIcon = () => (
-  <svg className="animate-checkPop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-);
 
 interface UniversalToolProps {
   formatSlug?: FormatSlug;
+  onPhaseChange?: (phase: Phase) => void;
+  onReset?: (resetFn: () => void) => void;
 }
 
-export function UniversalTool({ formatSlug }: UniversalToolProps) {
+export function UniversalTool({ formatSlug, onPhaseChange, onReset }: UniversalToolProps) {
   const [blocks, setBlocks] = useState<any[]>([]);
   const [phase, setPhase] = useState<Phase>("idle");
   const [inputSource, setInputSource] = useState<InputSource>("clipboard");
-  const [copied, setCopied] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [fileName, setFileName] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
   const [statusText, setStatusText] = useState("");
 
-  const feedbackTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const dragCounter = useRef(0);
-  const resultRef = useRef<HTMLDivElement>(null);
   const zoneRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (phase === "ready") {
-      const t = setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
-      return () => clearTimeout(t);
-    }
-  }, [phase]);
-
-  const flashCopied = () => {
-    clearTimeout(feedbackTimer.current);
-    setCopied(true);
-    feedbackTimer.current = setTimeout(() => setCopied(false), 2000);
-  };
+    onPhaseChange?.(phase);
+  }, [phase, onPhaseChange]);
 
   // ── Clipboard pipeline ──
 
@@ -100,7 +73,7 @@ export function UniversalTool({ formatSlug }: UniversalToolProps) {
   const handlePdf = useCallback(async (file: File) => {
     setBlocks([]);
     setErrorMessage("");
-    setCopied(false);
+
     setInputSource("pdf");
     setFileName(file.name);
     setPhase("processing");
@@ -108,6 +81,13 @@ export function UniversalTool({ formatSlug }: UniversalToolProps) {
     setStatusText("Loading PDF\u2026");
 
     try {
+      const quota = await checkQuota();
+      if (quota.remainingPdf <= 0) {
+        setErrorMessage("Daily PDF limit reached (2 per day). Try again tomorrow.");
+        setPhase("rate-limited");
+        return;
+      }
+
       const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
       pdfjs.GlobalWorkerOptions.workerSrc =
         "https://unpkg.com/pdfjs-dist@5.5.207/legacy/build/pdf.worker.min.mjs";
@@ -140,22 +120,36 @@ export function UniversalTool({ formatSlug }: UniversalToolProps) {
 
         const imageDataUrl = canvas.toDataURL("image/png");
         const base64 = imageDataUrl.split(",")[1];
-        const markdown = await ocrImage(base64);
+        const markdown = await ocrImage(base64, "pdf", i);
         pageMarkdown.push(markdown);
       }
 
       const combined = pageMarkdown
         .map((text) => (text || "").trim())
         .filter(Boolean)
-        .join("\n\n");
+        .join("\n\n")
+        .replace(/^\s*Page\s+\d+\s*$/gim, "")
+        .replace(/^\s*\d{1,4}\s*$/gm, "")
+        .trim();
+
+      if (!combined) {
+        setErrorMessage("No text detected in this PDF. Make sure the file contains readable text, not just images.");
+        setPhase("error");
+        return;
+      }
 
       const intermediate = parseMarkdownToBlocks(combined);
       const notionBlocks = jsonToNotionBlocks(intermediate);
       setBlocks(notionBlocks);
       setPhase("ready");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "PDF conversion failed.");
-      setPhase("error");
+      if (error instanceof RateLimitError) {
+        setErrorMessage(error.message);
+        setPhase("rate-limited");
+      } else {
+        setErrorMessage(error instanceof Error ? error.message : "PDF conversion failed.");
+        setPhase("error");
+      }
     }
   }, []);
 
@@ -164,43 +158,49 @@ export function UniversalTool({ formatSlug }: UniversalToolProps) {
   const handleImage = useCallback(async (file: File) => {
     setBlocks([]);
     setErrorMessage("");
-    setCopied(false);
+
     setInputSource("image");
     setFileName(file.name);
     setPhase("processing");
     setStatusText("Reading image\u2026");
 
     try {
+      const quota = await checkQuota();
+      if (quota.remainingImage <= 0) {
+        setErrorMessage("Daily image limit reached (5 per day). Try again tomorrow.");
+        setPhase("rate-limited");
+        return;
+      }
+
       const base64 = await readFileAsBase64(file);
-      const markdown = await ocrImage(base64);
+      const markdown = await ocrImage(base64, "image");
+
+      if (!markdown.trim()) {
+        setErrorMessage("No text detected in this image. Make sure the image contains readable text.");
+        setPhase("error");
+        return;
+      }
+
       const intermediate = parseMarkdownToBlocks(markdown);
       const notionBlocks = jsonToNotionBlocks(intermediate);
       setBlocks(notionBlocks);
       setPhase("ready");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Image conversion failed.");
-      setPhase("error");
+      if (error instanceof RateLimitError) {
+        setErrorMessage(error.message);
+        setPhase("rate-limited");
+      } else {
+        setErrorMessage(error instanceof Error ? error.message : "Image conversion failed.");
+        setPhase("error");
+      }
     }
   }, []);
 
-  // ── Input detection ──
-
-  const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const files = e.clipboardData.files;
-    if (files.length > 0) {
-      const file = files[0];
-      if (file.type === "application/pdf") return handlePdf(file);
-      if (file.type.startsWith("image/")) return handleImage(file);
-    }
-    const html = e.clipboardData.getData("text/html");
-    const plain = e.clipboardData.getData("text/plain");
-    handleClipboard(html, plain);
-  }, [handlePdf, handleImage, handleClipboard]);
+  // ── Global paste listener ──
 
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
-      if (phase !== "idle") return;
+      if (phase === "processing") return;
       const target = e.target as HTMLElement;
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
 
@@ -219,83 +219,78 @@ export function UniversalTool({ formatSlug }: UniversalToolProps) {
     return () => document.removeEventListener("paste", onPaste);
   }, [phase, handlePdf, handleImage, handleClipboard]);
 
-  // ── Drag & drop ──
+  // ── Drag & drop (global — works anywhere on page) ──
 
-  const onDragEnter = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter.current += 1;
-    if (e.dataTransfer.types.includes("Files")) setIsDragOver(true);
-  }, []);
+  useEffect(() => {
+    if (phase === "processing") return;
 
-  const onDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter.current -= 1;
-    if (dragCounter.current === 0) setIsDragOver(false);
-  }, []);
+    let counter = 0;
 
-  const onDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
+    const onDragEnter = (e: DragEvent) => {
+      e.preventDefault();
+      counter += 1;
+      if (e.dataTransfer?.types.includes("Files")) setIsDragOver(true);
+    };
 
-  const onDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter.current = 0;
-    setIsDragOver(false);
+    const onDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      counter -= 1;
+      if (counter === 0) setIsDragOver(false);
+    };
 
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-    if (file.type === "application/pdf") return handlePdf(file);
-    if (file.type.startsWith("image/")) return handleImage(file);
-  }, [handlePdf, handleImage]);
+    const onDragOver = (e: DragEvent) => {
+      e.preventDefault();
+    };
+
+    const onDrop = (e: DragEvent) => {
+      e.preventDefault();
+      counter = 0;
+      setIsDragOver(false);
+
+      const file = e.dataTransfer?.files?.[0];
+      if (!file) return;
+      if (file.type === "application/pdf") return handlePdf(file);
+      if (file.type.startsWith("image/")) return handleImage(file);
+      setErrorMessage(`Unsupported file type: ${file.name.split(".").pop()?.toUpperCase() || file.type}. Try a PDF or image instead.`);
+      setPhase("error");
+    };
+
+    document.addEventListener("dragenter", onDragEnter);
+    document.addEventListener("dragleave", onDragLeave);
+    document.addEventListener("dragover", onDragOver);
+    document.addEventListener("drop", onDrop);
+    return () => {
+      document.removeEventListener("dragenter", onDragEnter);
+      document.removeEventListener("dragleave", onDragLeave);
+      document.removeEventListener("dragover", onDragOver);
+      document.removeEventListener("drop", onDrop);
+    };
+  }, [phase, handlePdf, handleImage]);
 
   const onFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.type === "application/pdf") handlePdf(file);
     else if (file.type.startsWith("image/")) handleImage(file);
+    else {
+      setErrorMessage(`Unsupported file type: ${file.name.split(".").pop()?.toUpperCase() || file.type}. Try a PDF or image instead.`);
+      setPhase("error");
+    }
   }, [handlePdf, handleImage]);
 
-  // ── Unified copy: writes all MIME types at once ──
-
-  const handleCopy = async () => {
-    try {
-      const notionPayload = buildNotionPayload(blocks);
-      const md = blocksToMarkdown(blocks);
-      const html = await buildClipboardHtmlFromBlocks(blocks, getBlockData, sanitizeLatex);
-
-      const listener = (e: Event) => {
-        const ce = e as ClipboardEvent;
-        ce.preventDefault();
-        ce.stopImmediatePropagation();
-        ce.clipboardData?.setData("text/_notion-blocks-v3-production", notionPayload);
-        if (html) ce.clipboardData?.setData("text/html", html);
-        ce.clipboardData?.setData("text/plain", md);
-        ce.clipboardData?.setData("text/markdown", md);
-      };
-      document.addEventListener("copy", listener, true);
-      try {
-        document.execCommand("copy");
-        flashCopied();
-      } finally {
-        document.removeEventListener("copy", listener, true);
-      }
-    } catch { /* */ }
-  };
-
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setBlocks([]);
     setPhase("idle");
-    setCopied(false);
     setErrorMessage("");
     setFileName("");
     setStatusText("");
     setProgress({ current: 0, total: 0 });
     if (fileInputRef.current) fileInputRef.current.value = "";
-  };
+  }, []);
+
+  useEffect(() => {
+    onReset?.(handleReset);
+  }, [onReset, handleReset]);
 
   // ── Ready-state label ──
 
@@ -310,28 +305,36 @@ export function UniversalTool({ formatSlug }: UniversalToolProps) {
     "universal-zone",
     phase === "idle" ? (isDragOver ? "universal-zone--dragover" : "universal-zone--idle") : "",
     phase === "processing" ? "universal-zone--processing" : "",
-    phase === "ready" ? "universal-zone--collapsed" : "",
+    phase === "ready" ? "hidden" : "",
     phase === "error" ? "universal-zone--error" : "",
+    phase === "rate-limited" ? "drop-zone--rate-limited" : "",
   ].filter(Boolean).join(" ");
-
-  // When formatSlug is set, reorder so that format's logo appears first
-  const orderedLogos = formatSlug
-    ? [...FORMAT_LOGOS].sort((a, b) => (a.key === formatSlug ? -1 : b.key === formatSlug ? 1 : 0))
-    : FORMAT_LOGOS;
 
   return (
     <>
-      <section className={`flex flex-col gap-4 ${phase === "ready" ? "pb-20" : ""}`}>
+      {/* Full-screen drop overlay */}
+      {isDragOver && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm border-2 border-dashed border-accent rounded-none pointer-events-none">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="flex items-center justify-center size-16 rounded-2xl bg-accent/10">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </div>
+            <p className="text-lg font-semibold text-foreground">Drop anywhere</p>
+            <p className="text-sm text-muted-foreground">PDF or image — we&apos;ll handle the rest</p>
+          </div>
+        </div>
+      )}
+
+      <section className="flex flex-col gap-4">
         <div
           ref={zoneRef}
           className={zoneClass}
           tabIndex={0}
-          onClick={() => phase === "idle" && fileInputRef.current?.click()}
-          onPaste={phase === "idle" ? handlePaste : undefined}
-          onDragEnter={phase === "idle" ? onDragEnter : undefined}
-          onDragLeave={phase === "idle" ? onDragLeave : undefined}
-          onDragOver={phase === "idle" ? onDragOver : undefined}
-          onDrop={phase === "idle" ? onDrop : undefined}
+          onClick={() => (phase === "idle" || phase === "error") && fileInputRef.current?.click()}
         >
           <input
             ref={fileInputRef}
@@ -385,17 +388,7 @@ export function UniversalTool({ formatSlug }: UniversalToolProps) {
             </div>
           )}
 
-          {phase === "ready" && (
-            <div className="paste-zone-collapsed-inner">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 6L9 17l-5-5" />
-              </svg>
-              <span>{readyLabel}</span>
-              <Button variant="outline" size="sm" className="ml-auto" onClick={handleReset}>
-                Start over
-              </Button>
-            </div>
-          )}
+          {/* Collapsed ready state removed — result preview is visible below */}
 
           {phase === "error" && (
             <div className="drop-zone-error-inner">
@@ -410,56 +403,51 @@ export function UniversalTool({ formatSlug }: UniversalToolProps) {
               </Button>
             </div>
           )}
+
+          {phase === "rate-limited" && (
+            <div className="rate-limit-inner">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <p className="rate-limit-msg">{errorMessage}</p>
+              <p className="rate-limit-sub">
+                Free usage resets daily at midnight UTC. Sign up for higher limits coming soon.
+              </p>
+              <Button variant="outline" size="sm" onClick={handleReset}>
+                Go back
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* Preview */}
+        {/* Result: sticky toolbar + document preview */}
         {phase === "ready" && blocks.length > 0 && (
-          <div className="animate-slideUp" ref={resultRef}>
-            <Card>
-              <CardContent>
-                <NotionSeshPreview blocks={blocks} />
-              </CardContent>
-            </Card>
-          </div>
+          <>
+            <ResultPreview blocks={blocks} formatSlug={formatSlug} onReset={handleReset} />
+            {!formatSlug && (
+              <section className="text-center py-6 border-t border-border mt-2">
+                <p className="text-base font-semibold text-foreground">
+                  Want this built into your browser?
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Copy from any AI chat. Paste anywhere. Already formatted.
+                </p>
+                <a
+                  href={CWS_LISTING_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 mt-4 px-6 py-3 rounded-lg bg-primary text-primary-foreground text-sm font-semibold transition-opacity hover:opacity-90"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
+                  Get the Chrome Extension
+                </a>
+              </section>
+            )}
+          </>
         )}
       </section>
-
-      {/* Fixed bottom action bar — single unified copy button */}
-      {phase === "ready" && blocks.length > 0 && createPortal(
-        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border px-4 py-3 animate-barSlideUp z-50">
-          <div className="max-w-2xl mx-auto flex items-center justify-center">
-            <Button
-              variant={copied ? "success" : "default"}
-              size="lg"
-              className="gap-2.5 px-5 h-10"
-              onClick={handleCopy}
-            >
-              {copied ? (
-                <>
-                  <CheckIcon />
-                  Copied!
-                </>
-              ) : (
-                <>
-                  <span className="flex items-center -space-x-1">
-                    {orderedLogos.map(({ key, logo }) => (
-                      <LogoIcon
-                        key={key}
-                        src={logo}
-                        alt=""
-                        size={20}
-                        shape="bare"
-                        invertDark={key === "notion"}
-                      />
-                    ))}
-                  </span>
-                  Copy
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      , document.body)}
     </>
   );
 }

@@ -20,7 +20,7 @@ const CheckIcon = () => (
 
 interface CopyActionBarProps {
   blocks: any[];
-  formatSlug: FormatSlug;
+  formatSlug?: FormatSlug;
 }
 
 export function CopyActionBar({ blocks, formatSlug }: CopyActionBarProps) {
@@ -102,7 +102,7 @@ export function CopyActionBar({ blocks, formatSlug }: CopyActionBarProps) {
     { key: "notion" as const, handler: handleCopyNotion },
     { key: "markdown" as const, handler: handleCopyMarkdown },
     { key: "google-docs" as const, handler: handleCopyGoogleDocs },
-  ].sort((a, b) => (a.key === formatSlug ? -1 : b.key === formatSlug ? 1 : 0));
+  ].sort((a, b) => formatSlug ? (a.key === formatSlug ? -1 : b.key === formatSlug ? 1 : 0) : 0);
 
   return createPortal(
     <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border px-4 py-3 animate-barSlideUp z-50">
@@ -112,7 +112,7 @@ export function CopyActionBar({ blocks, formatSlug }: CopyActionBarProps) {
             key={key}
             variant={copyFeedback === key ? "success" : "outline"}
             size="lg"
-            className={key === formatSlug ? "ring-2 ring-primary/30" : ""}
+            className={formatSlug && key === formatSlug ? "ring-2 ring-primary/30" : ""}
             onClick={handler}
           >
             {copyFeedback === key ? (

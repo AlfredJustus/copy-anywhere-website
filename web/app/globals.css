@@ -220,6 +220,40 @@ a { color: inherit; }
   line-height: 1.4;
 }
 
+/* ===== Rate limit banner ===== */
+.drop-zone--rate-limited {
+  min-height: 140px;
+  padding: 40px 24px;
+  border: 2px solid #e67e22;
+  box-shadow: 0 0 0 4px rgba(230, 126, 34, 0.08), var(--shadow);
+  cursor: default;
+}
+
+.rate-limit-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  color: #e67e22;
+}
+
+.rate-limit-msg {
+  font-size: 15px;
+  font-weight: 600;
+  color: #e67e22;
+  max-width: 40ch;
+  line-height: 1.4;
+}
+
+.rate-limit-sub {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--muted-foreground);
+  max-width: 44ch;
+  line-height: 1.4;
+}
+
 /* ===== PDF progress bar ===== */
 .pdf-progress-wrap {
   display: flex;
@@ -379,25 +413,29 @@ a { color: inherit; }
 .notionsesh-preview {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
+  font-size: 15px;
+  line-height: 1.7;
 }
 
-.ob-text { line-height: 1.6; }
+.ob-text { line-height: 1.7; }
 
 .ob-h1, .ob-h2, .ob-h3 {
   font-family: var(--font-serif);
+  font-weight: 600;
   line-height: 1.3;
+  margin-top: 8px;
 }
 
-.ob-h1 { font-size: 30px; }
-.ob-h2 { font-size: 24px; }
+.ob-h1 { font-size: 30px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.ob-h2 { font-size: 24px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
 .ob-h3 { font-size: 19px; }
 
 .ob-bullet, .ob-numbered {
   display: flex;
-  gap: 9px;
+  gap: 10px;
   align-items: flex-start;
-  line-height: 1.5;
+  line-height: 1.65;
 }
 
 .ob-bullet[data-indent="1"],
@@ -407,67 +445,116 @@ a { color: inherit; }
 .ob-numbered[data-indent="2"] { margin-left: 48px; }
 
 .ob-bullet-dot {
-  width: 6px;
-  height: 6px;
-  min-width: 6px;
+  width: 5px;
+  height: 5px;
+  min-width: 5px;
   border-radius: 50%;
-  margin-top: 10px;
+  margin-top: 11px;
   background: var(--accent);
 }
 
-.ob-num { min-width: 18px; color: var(--muted); }
+.ob-num {
+  min-width: 18px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
 
 .ob-code-block {
-  background: #1f2430;
-  color: #f5f7fb;
-  border-radius: 12px;
-  padding: 16px;
+  background: color-mix(in oklab, var(--ink) 94%, var(--accent) 6%);
+  color: color-mix(in oklab, var(--panel) 85%, var(--muted) 15%);
+  border-radius: var(--radius-xl);
+  border: 1px solid color-mix(in oklab, var(--panel) 6%, transparent);
+  padding: 18px 20px;
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 13.5px;
+  line-height: 1.6;
   white-space: pre-wrap;
   overflow-x: auto;
 }
 
 .ob-quote-block {
   border-left: 3px solid var(--accent);
+  background: var(--accent-light);
   color: var(--muted);
-  padding-left: 14px;
+  padding: 12px 16px;
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
   font-style: italic;
 }
 
-.ob-divider { border: 0; border-top: 1px solid var(--line); }
+.ob-divider {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 4px 0;
+  opacity: 0.7;
+}
 
 .ob-equation-block {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 16px;
+  background: color-mix(in oklab, var(--accent-light) 40%, transparent);
+  border-radius: var(--radius-xl);
+  padding: 20px;
   overflow-x: auto;
   text-align: center;
 }
 
-.ob-table { border-collapse: collapse; width: 100%; font-size: 14px; }
-
-.ob-table th, .ob-table td {
+.ob-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: 14px;
   border: 1px solid var(--line);
-  text-align: left;
-  vertical-align: top;
-  padding: 8px 10px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
-.ob-table th { background: #f8f5f1; font-weight: 600; }
+.ob-table th, .ob-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ob-table th:not(:last-child),
+.ob-table td:not(:last-child) {
+  border-right: 1px solid var(--line);
+}
+
+.ob-table thead th {
+  background: var(--bg);
+  font-weight: 600;
+}
+
+.ob-table tbody tr:last-child td { border-bottom: 0; }
+
+.ob-table tbody tr:nth-child(even) {
+  background: color-mix(in oklab, var(--bg) 50%, transparent);
+}
 
 .ob-rt-code {
   font-family: var(--font-mono);
-  background: rgba(212, 115, 74, 0.08);
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  padding: 1px 5px;
+  background: var(--accent-light);
+  border-radius: 5px;
+  padding: 2px 6px;
   font-size: 0.9em;
 }
 
-.ob-inline-link { color: #175ec7; }
-.ob-image { max-width: 100%; border-radius: 12px; }
+.ob-inline-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in oklab, var(--accent) 30%, transparent);
+  transition: text-decoration-color 0.2s;
+}
+
+.ob-inline-link:hover {
+  text-decoration-color: var(--accent);
+}
+
+.ob-image {
+  max-width: 100%;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
 
 /* ===== Custom Tailwind animations ===== */
 @utility animate-slideUp {

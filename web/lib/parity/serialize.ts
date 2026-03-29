@@ -214,6 +214,228 @@ export function blocksToMarkdown(blocksArray: any[]): string {
   return parts.join("");
 }
 
+// ==================== Blocks to LaTeX ====================
+
+// Characters outside pdflatex's T1 encoding range that should be stripped.
+// Covers emoji, variation selectors, ZWJ, tag characters, and other symbols.
+const UNSUPPORTED_UNICODE_RE = /\p{Emoji_Presentation}|\p{Extended_Pictographic}|[\u{FE00}-\u{FE0F}\u{200D}\u{E0020}-\u{E007F}]/gu;
+
+function escapeLatex(s: string): string {
+  return String(s || "")
+    .replace(UNSUPPORTED_UNICODE_RE, "")
+    .replace(/\\/g, "\\textbackslash{}")
+    .replace(/[&%$#_{}]/g, (m) => "\\" + m)
+    .replace(/~/g, "\\textasciitilde{}")
+    .replace(/\^/g, "\\textasciicircum{}")
+    .replace(/\|/g, "\\textbar{}")
+    .replace(/</g, "\\textless{}")
+    .replace(/>/g, "\\textgreater{}");
+}
+
+function richTextToLaTeX(titleArray: any[]): string {
+  if (!Array.isArray(titleArray)) return "";
+
+  const parts: string[] = [];
+  for (const segment of titleArray) {
+    if (!Array.isArray(segment)) continue;
+    const [text, annotations] = segment;
+
+    // Inline equation
+    if (text === "⁍" && Array.isArray(annotations)) {
+      const eq = annotations.find((a: any) => a[0] === "e");
+      if (eq) {
+        parts.push(`$${eq[1]}$`);
+        continue;
+      }
+    }
+
+    let bold = false;
+    let italic = false;
+    let code = false;
+    let link: string | null = null;
+
+    if (Array.isArray(annotations)) {
+      for (const ann of annotations) {
+        if (ann[0] === "b") bold = true;
+        if (ann[0] === "i") italic = true;
+        if (ann[0] === "c") code = true;
+        if (ann[0] === "a") link = ann[1];
+      }
+    }
+
+    let content = code ? String(text || "") : escapeLatex(text);
+
+    if (code) content = `\\texttt{${escapeLatex(text)}}`;
+    if (bold) content = `\\textbf{${content}}`;
+    if (italic) content = `\\textit{${content}}`;
+    if (link) content = `\\href{${String(link).replace(/[%#]/g, (m) => "\\" + m)}}{${content}}`;
+
+    parts.push(content);
+  }
+
+  return parts.join("");
+}
+
+function tableCellToLaTeX(cell: any): string {
+  return richTextToLaTeX(normalizeTableCellRichText(cell));
+}
+
+const LATEX_PREAMBLE = `\\documentclass[11pt,a4paper]{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage[T1]{fontenc}
+\\usepackage{lmodern}
+\\usepackage{amsmath,amssymb,amsfonts}
+\\usepackage{listings}
+\\usepackage{hyperref}
+\\usepackage{csquotes}
+\\usepackage{graphicx}
+\\usepackage{geometry}
+\\usepackage{enumitem}
+\\usepackage{xcolor}
+\\geometry{margin=1in}
+\\lstset{basicstyle=\\ttfamily\\small,breaklines=true,frame=single,backgroundcolor=\\color[gray]{0.97},xleftmargin=0.5em,xrightmargin=0.5em}
+\\setlength{\\parindent}{0pt}
+\\setlength{\\parskip}{0.5em}
+\\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\\begin{document}
+`;
+
+export function blocksToLaTeX(blocksArray: any[]): string {
+  const lines: string[] = [LATEX_PREAMBLE];
+
+  // Track list state for grouping consecutive list items
+  let currentListType: string | null = null; // "bulleted_list" | "numbered_list" | null
+  let currentListIndent = 0;
+  let openListDepth = 0; // how many nested list envs are open
+
+  function closeAllLists() {
+    for (let i = openListDepth - 1; i >= 0; i--) {
+      lines.push(currentListType === "numbered_list" ? "\\end{enumerate}" : "\\end{itemize}");
+    }
+    openListDepth = 0;
+    currentListType = null;
+    currentListIndent = 0;
+  }
+
+  function openListToDepth(type: string, indent: number) {
+    const env = type === "numbered_list" ? "enumerate" : "itemize";
+    // If switching list type, close all and restart
+    if (currentListType && currentListType !== type) {
+      closeAllLists();
+    }
+    const targetDepth = indent + 1;
+    // Open new environments as needed
+    while (openListDepth < targetDepth) {
+      lines.push(`\\begin{${env}}`);
+      openListDepth++;
+    }
+    // Close environments if going shallower
+    while (openListDepth > targetDepth) {
+      lines.push(`\\end{${env}}`);
+      openListDepth--;
+    }
+    currentListType = type;
+    currentListIndent = indent;
+  }
+
+  for (const block of blocksArray) {
+    const data = getBlockData(block);
+
+    // If not a list block, close any open lists
+    if (data.type !== "bulleted_list" && data.type !== "numbered_list") {
+      if (currentListType) closeAllLists();
+    }
+
+    const tex = richTextToLaTeX(data.title);
+
+    switch (data.type) {
+      case "header":
+        lines.push(`\\section*{${tex}}`);
+        break;
+      case "sub_header":
+        lines.push(`\\subsection*{${tex}}`);
+        break;
+      case "sub_sub_header":
+        lines.push(`\\subsubsection*{${tex}}`);
+        break;
+
+      case "bulleted_list":
+      case "numbered_list": {
+        const indent = Math.min(data.indent || 0, 2);
+        openListToDepth(data.type, indent);
+        lines.push(`\\item ${tex}`);
+        break;
+      }
+
+      case "equation": {
+        const latex = data.title?.[0]?.[0] || "";
+        if (latex) {
+          lines.push("\\begin{equation*}");
+          lines.push(latex);
+          lines.push("\\end{equation*}");
+        }
+        break;
+      }
+
+      case "code": {
+        const code = data.title?.[0]?.[0] || "";
+        lines.push("\\begin{lstlisting}");
+        lines.push(code);
+        lines.push("\\end{lstlisting}");
+        break;
+      }
+
+      case "quote":
+        lines.push("\\begin{displayquote}");
+        lines.push(tex);
+        lines.push("\\end{displayquote}");
+        break;
+
+      case "divider":
+        lines.push("\\vspace{0.5em}\\noindent\\rule{\\textwidth}{0.4pt}\\vspace{0.5em}");
+        break;
+
+      case "table": {
+        const rows = data.table_data?.rows || [];
+        const columnCount = data.table_data?.columnCount || rows[0]?.length || 0;
+        const hasHeader = data.table_data?.hasHeader !== false;
+        if (rows.length > 0 && columnCount > 0) {
+          const colSpec = Array(columnCount).fill("l").join(" | ");
+          lines.push(`\\begin{tabular}{| ${colSpec} |}`);
+          lines.push("\\hline");
+          const startIdx = hasHeader ? 1 : 0;
+          if (hasHeader && rows[0]) {
+            const cells = rows[0].map((cell: any) => `\\textbf{${tableCellToLaTeX(cell)}}`);
+            lines.push(cells.join(" & ") + " \\\\");
+            lines.push("\\hline");
+          }
+          for (let r = startIdx; r < rows.length; r++) {
+            const cells = rows[r].map((cell: any) => tableCellToLaTeX(cell));
+            lines.push(cells.join(" & ") + " \\\\");
+            lines.push("\\hline");
+          }
+          lines.push("\\end{tabular}");
+        }
+        break;
+      }
+
+      case "image":
+        // Images from URLs can't be included in pdflatex — skip with note
+        break;
+
+      default:
+        if (tex) lines.push(tex + "\n");
+        break;
+    }
+  }
+
+  // Close any remaining open lists
+  if (currentListType) closeAllLists();
+
+  lines.push("\\end{document}");
+  return lines.join("\n");
+}
+
 // ==================== Build Notion Payload ====================
 
 function buildNotionTableBlock(block: any): any {

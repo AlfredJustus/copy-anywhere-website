@@ -2,7 +2,24 @@
 // Verbatim mirror of copy-anywhere-main/utils/html-clipboard.js
 // Adaptation: chrome.runtime.getURL replaced with CDN <script> loader for MathJax
 
-import { parseRichText } from "./blockFactory";
+import {
+  RENDER_BUDGET_MS,
+  RENDER_TIMEOUT_FLOOR_MS,
+  BLOCK_EQ_MAX_WIDTH,
+  INLINE_BASE_FONT_PX,
+  clamp,
+  timeoutPromise,
+  assertWithinBudget,
+  isRichTextArray,
+  normalizeTableCellRichText,
+  scaleCssLength,
+  dataUrlFromBlob,
+  stripTrailingDisplayTag,
+  getHtmlRenderLatex,
+  ensureMathJaxSvg,
+  collectMathRequests,
+  stripSvgMarkup,
+} from "./mathRender";
 
 const ROOT_STYLE =
   'font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:1em;line-height:1.45;color:#000;background:transparent;margin:0;padding:0';
@@ -34,10 +51,6 @@ const TH_EXTRA = "font-weight:600;background:#f5f5f5";
 const BLOCK_EQ_WRAP = "text-align:center;margin:0.75em 0";
 const IMG_BLOCK = "max-width:100%;height:auto";
 
-const MATHJAX_CDN_URL =
-  "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg-full.js";
-const RENDER_BUDGET_MS = 1000;
-const INLINE_BASE_FONT_PX = 16;
 const INLINE_MIN_EM = 0.92;
 const INLINE_MAX_EM = 2.4;
 const INLINE_PAD_X = 4;
@@ -53,14 +66,10 @@ const BLOCK_PAD_BOTTOM = 4;
 const BLOCK_RASTER_SCALE = 3.5;
 const BLOCK_EQ_RENDER_SCALE = 0.6;
 const BLOCK_EQ_DOCS_TARGET_SCALE = 2;
-const BLOCK_EQ_MAX_WIDTH = 520;
 const BLOCK_EQ_SCALE = 0.4;
 const BLOCK_TRIM_TOP_PX = 4;
 const BLOCK_TRIM_SIDE_PX = 4;
 const BLOCK_TRIM_BOTTOM_PX = 4;
-const RENDER_TIMEOUT_FLOOR_MS = 60;
-
-let mathJaxLoadPromise: Promise<any> | null = null;
 
 function escapeHtml(s: any): string {
   return String(s ?? "")
@@ -102,97 +111,6 @@ function getNumberedMarker(indent: number, counter: number): string {
   if (indent === 1)
     return `${String.fromCharCode(96 + (((counter - 1) % 26) + 1))}.`;
   return `${toRomanNumeral(counter)}.`;
-}
-
-function isRichTextArray(value: any): boolean {
-  return (
-    Array.isArray(value) && value.every((segment: any) => Array.isArray(segment))
-  );
-}
-
-function normalizeTableCellRichText(cell: any): any[] {
-  if (isRichTextArray(cell)) return cell;
-  if (cell == null) return [];
-  return parseRichText(String(cell));
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-function timeoutPromise(ms: number, label: string): Promise<never> {
-  return new Promise((_, reject) => {
-    setTimeout(() => reject(new Error(label)), ms);
-  });
-}
-
-function assertWithinBudget(deadlineMs: number): void {
-  if (performance.now() > deadlineMs) {
-    throw new Error("math render budget exceeded");
-  }
-}
-
-function scaleCssLength(value: string, factor: number): string | null {
-  const match = String(value || "")
-    .trim()
-    .match(/^(-?\d*\.?\d+)([a-z%]*)$/i);
-  if (!match) return null;
-  const scaled = Number(match[1]) * factor;
-  const unit = match[2] || "px";
-  return `${scaled.toFixed(4).replace(/\.?0+$/, "")}${unit}`;
-}
-
-function dataUrlFromBlob(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () =>
-      reject(reader.error || new Error("Failed to read blob as data URL"));
-    reader.onload = () => resolve(reader.result as string);
-    reader.readAsDataURL(blob);
-  });
-}
-
-// ---- CDN-based MathJax loader (replaces chrome.runtime.getURL) ----
-async function ensureMathJaxSvg(): Promise<any> {
-  if ((globalThis as any).MathJax?.tex2svgPromise) {
-    if ((globalThis as any).MathJax.startup?.promise) {
-      await (globalThis as any).MathJax.startup.promise;
-    }
-    return (globalThis as any).MathJax;
-  }
-
-  if (!mathJaxLoadPromise) {
-    (globalThis as any).MathJax = {
-      startup: { typeset: false },
-      svg: { fontCache: "none" },
-    };
-
-    mathJaxLoadPromise = new Promise<void>((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = MATHJAX_CDN_URL;
-      script.async = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error("Failed to load MathJax from CDN"));
-      document.head.appendChild(script);
-    })
-      .then(async () => {
-        const mj = (globalThis as any).MathJax;
-        if (!mj?.startup?.promise) {
-          throw new Error("MathJax startup promise missing");
-        }
-        await mj.startup.promise;
-        if (typeof mj.tex2svgPromise !== "function") {
-          throw new Error("MathJax tex2svgPromise unavailable");
-        }
-        return mj;
-      })
-      .catch((error) => {
-        mathJaxLoadPromise = null;
-        throw error;
-      });
-  }
-
-  return mathJaxLoadPromise;
 }
 
 async function loadSvgRasterSource(
@@ -407,23 +325,6 @@ async function canvasToDataUrl(canvas: any): Promise<string> {
   return canvas.toDataURL("image/png");
 }
 
-function stripSvgMarkup(svgEl: SVGElement): SVGElement {
-  const clone = svgEl.cloneNode(true) as SVGElement;
-  clone.removeAttribute("aria-hidden");
-  clone
-    .querySelectorAll("title, desc, metadata")
-    .forEach((node) => node.remove());
-  clone
-    .querySelectorAll("[aria-hidden], [data-mml-node]")
-    .forEach((node: Element) => {
-      node.removeAttribute("aria-hidden");
-      node.removeAttribute("data-mml-node");
-    });
-  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-  clone.setAttribute("preserveAspectRatio", "xMidYMid meet");
-  return clone;
-}
-
 function inlineMathStyleFromAsset(asset: any): string {
   const rasterHeight = Math.max(
     1,
@@ -511,76 +412,6 @@ function getInlineMathFallback(latex: string): string {
 
 function getBlockMathFallback(latex: string): string {
   return `<pre style="${escapeAttr(PRE_STYLE)}">${escapeHtml(`$$\n${latex}\n$$`)}</pre>`;
-}
-
-function stripTrailingDisplayTag(latex: string): string {
-  return String(latex || "")
-    .replace(/\s*\\tag\{[^{}]*\}\s*$/u, "")
-    .trim();
-}
-
-function getHtmlRenderLatex(
-  latex: string,
-  displayMode: boolean,
-  sanitizeLatex: (s: string) => string,
-): string {
-  const source = displayMode ? stripTrailingDisplayTag(latex) : latex;
-  return sanitizeLatex(source);
-}
-
-function collectMathFromRichTitle(
-  titleArray: any[],
-  requests: Map<string, { latex: string; displayMode: boolean }>,
-): void {
-  if (!Array.isArray(titleArray)) return;
-  for (const segment of titleArray) {
-    if (
-      !Array.isArray(segment) ||
-      segment[0] !== "⁍" ||
-      !Array.isArray(segment[1])
-    )
-      continue;
-    const equationAnnotation = segment[1].find(
-      (ann: any) => ann[0] === "e" && ann[1],
-    );
-    if (equationAnnotation) {
-      requests.set(`inline\0${equationAnnotation[1]}`, {
-        latex: equationAnnotation[1],
-        displayMode: false,
-      });
-    }
-  }
-}
-
-function collectMathRequests(
-  blocks: any[],
-  getBlockData: (block: any) => any,
-): Map<string, { latex: string; displayMode: boolean }> {
-  const requests = new Map<string, { latex: string; displayMode: boolean }>();
-  for (const block of blocks) {
-    const data = getBlockData(block);
-    if (data.type === "equation") {
-      const latex = data.title?.[0]?.[0];
-      if (latex) {
-        requests.set(`block\0${latex}`, { latex, displayMode: true });
-      }
-      continue;
-    }
-
-    collectMathFromRichTitle(data.title, requests);
-
-    if (data.type === "table" && data.table_data?.rows) {
-      for (const row of data.table_data.rows) {
-        for (const cell of row) {
-          collectMathFromRichTitle(
-            normalizeTableCellRichText(cell),
-            requests,
-          );
-        }
-      }
-    }
-  }
-  return requests;
 }
 
 async function renderMathToPngAsset(

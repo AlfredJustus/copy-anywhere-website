@@ -1,10 +1,11 @@
 import { ConverterApp } from "@/components/ConverterApp";
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { LogoIcon } from "@/components/LogoIcon";
 import {
-  MODELS, FORMATS, CWS_LISTING_URL,
+  MODELS, FORMATS, CWS_LISTING_URL, SITE_URL,
   isValidModel, isValidFormat,
   type ModelSlug, type FormatSlug,
 } from "@/lib/config/models";
@@ -24,9 +25,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const m = MODELS[modelSlug];
   const f = FORMATS[formatSlug];
 
+  const title = `${m.label} to ${f.label}, Perfectly Formatted – Copy Anywhere`;
+  const description = formatSlug === "pdf"
+    ? `Convert ${m.seo} to ${f.seo} with math, code, tables, and formatting preserved. Free online tool.`
+    : `Copy math, code, tables, and formatted text from ${m.seo}. Paste perfectly as ${f.seo}. Free online tool.`;
+  const url = `${SITE_URL}/convert/${modelSlug}/${formatSlug}`;
+
   return {
-    title: `${m.label} to ${f.label} – Copy Anywhere`,
-    description: `Copy math, code, tables, and formatted text from ${m.seo}. Paste perfectly as ${f.seo}. Free online tool.`,
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url },
   };
 }
 
@@ -35,10 +44,6 @@ export function generateStaticParams() {
     Object.keys(FORMATS).map((format) => ({ model, format }))
   );
 }
-
-const otherFormats = (current: FormatSlug) =>
-  (Object.entries(FORMATS) as [FormatSlug, (typeof FORMATS)[FormatSlug]][])
-    .filter(([slug]) => slug !== current);
 
 export default async function ModelFormatPage({ params }: Props) {
   const { model, format } = await params;
@@ -55,13 +60,6 @@ export default async function ModelFormatPage({ params }: Props) {
     <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-6">
       {/* Header */}
       <header className="flex flex-col items-center text-center gap-3">
-        <Link
-          href="/"
-          className="text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
-        >
-          &larr; Back to tools
-        </Link>
-
         <div className="flex items-center gap-3">
           <LogoIcon src={m.logo} alt={m.label} size={40} shape="rounded" />
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
@@ -71,11 +69,13 @@ export default async function ModelFormatPage({ params }: Props) {
         </div>
 
         <h1 className="font-serif text-3xl font-bold tracking-tight">
-          {m.label} to {f.label}
+          {m.label} to {f.label}, perfectly formatted
         </h1>
 
         <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
-          Copy math, code, tables, and rich text from {m.label}. Paste with perfect formatting into {f.label}.
+          {formatSlug === "pdf"
+            ? `Convert math, code, tables, and rich text from ${m.label} into ${f.seo}. LaTeX-compiled with native math rendering.`
+            : `Copy math, code, tables, and rich text from ${m.label}. Paste with perfect formatting into ${f.label}.`}
         </p>
 
         <div className="flex flex-wrap justify-center gap-1.5">
@@ -101,20 +101,6 @@ export default async function ModelFormatPage({ params }: Props) {
           </Badge>
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          Also available:{" "}
-          {otherFormats(formatSlug).map(([slug, fmt], i) => (
-            <span key={slug}>
-              {i > 0 && " | "}
-              <Link
-                href={`/convert/${modelSlug}/${slug}`}
-                className="underline underline-offset-2 hover:text-foreground"
-              >
-                {fmt.label}
-              </Link>
-            </span>
-          ))}
-        </p>
       </header>
 
       {/* Converter tool */}
@@ -127,14 +113,16 @@ export default async function ModelFormatPage({ params }: Props) {
           <ol className="list-decimal list-inside flex flex-col gap-1.5">
             <li>Copy content from {m.label} (select text and press ⌘C / Ctrl+C)</li>
             <li>Paste on this page — click the paste zone or press ⌘V / Ctrl+V anywhere</li>
-            <li>Click &ldquo;Copy to {f.label}&rdquo; and paste into {f.label}</li>
+            {formatSlug === "pdf"
+              ? <li>Download your beautifully formatted PDF</li>
+              : <li>Click &ldquo;Copy to {f.label}&rdquo; and paste into {f.label}</li>}
           </ol>
         </section>
 
         <section>
           <h2 className="text-base font-semibold text-foreground mb-2">What&apos;s supported</h2>
           <ul className="list-disc list-inside flex flex-col gap-1.5">
-            <li>Math and LaTeX equations — rendered perfectly in {f.label}</li>
+            <li>Math and LaTeX equations — {formatSlug === "pdf" ? "compiled natively by LaTeX" : `rendered perfectly in ${f.label}`}</li>
             <li>Code blocks with syntax highlighting</li>
             <li>Tables with headers and alignment</li>
             <li>Nested lists (ordered and unordered, any depth)</li>
@@ -145,9 +133,9 @@ export default async function ModelFormatPage({ params }: Props) {
         <section>
           <h2 className="text-base font-semibold text-foreground mb-2">Why use this</h2>
           <p>
-            Copy-pasting directly from {m.label} to {f.label} strips formatting, breaks math
-            equations, and ruins tables. Copy Anywhere preserves every detail — so your content
-            looks exactly how {m.label} rendered it, right inside {f.label}.
+            {formatSlug === "pdf"
+              ? `Saving ${m.label} output as a PDF usually means screenshots or broken formatting. Copy Anywhere converts your content to LaTeX and compiles it with pdflatex — so math, code, and tables render with professional typesetting quality.`
+              : `Copy-pasting directly from ${m.label} to ${f.label} strips formatting, breaks math equations, and ruins tables. Copy Anywhere preserves every detail — so your content looks exactly how ${m.label} rendered it, right inside ${f.label}.`}
           </p>
         </section>
       </article>
@@ -155,10 +143,12 @@ export default async function ModelFormatPage({ params }: Props) {
       {/* Extension CTA */}
       <section className="text-center py-6 border-t border-border mt-2">
         <p className="text-base font-semibold text-foreground">
-          You wouldn&apos;t need this page.
+          {formatSlug === "pdf" ? "Even faster from your browser." : "You wouldn\u2019t need this page."}
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          ⌘C in {m.label}. Paste into {f.label}. Already formatted.
+          {formatSlug === "pdf"
+            ? `⌘C in ${m.label}. Paste anywhere. Already formatted.`
+            : `⌘C in ${m.label}. Paste into ${f.label}. Already formatted.`}
         </p>
         <a
           href={CWS_LISTING_URL}
@@ -166,8 +156,8 @@ export default async function ModelFormatPage({ params }: Props) {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 mt-4 px-6 py-3 rounded-lg bg-primary text-primary-foreground text-sm font-semibold transition-opacity hover:opacity-90"
         >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
           Get the Chrome Extension
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
         </a>
       </section>
     </main>

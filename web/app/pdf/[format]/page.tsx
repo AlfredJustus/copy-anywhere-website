@@ -1,10 +1,11 @@
 import { PdfConverterTool } from "@/components/PdfConverterTool";
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { LogoIcon } from "@/components/LogoIcon";
 import {
-  FORMATS, CWS_LISTING_URL,
+  FORMATS, CWS_LISTING_URL, SITE_URL,
   isValidFormat,
   type FormatSlug,
 } from "@/lib/config/models";
@@ -22,25 +23,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const f = FORMATS[formatSlug];
 
+  const title = `Convert Any PDF to ${f.label} – Copy Anywhere`;
+  const description = `Upload any PDF and convert it to ${f.seo} with OCR-powered accuracy. Math, code, tables, and formatting preserved. Free online tool.`;
+  const url = `${SITE_URL}/pdf/${formatSlug}`;
+
   return {
-    title: `PDF to ${f.label} – Copy Anywhere`,
-    description: `Upload any PDF and convert it to ${f.seo} with OCR-powered accuracy. Math, code, tables, and formatting preserved. Free online tool.`,
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url },
   };
 }
 
 export function generateStaticParams() {
-  return Object.keys(FORMATS).map((format) => ({ format }));
+  return Object.keys(FORMATS).filter((f) => f !== "pdf").map((format) => ({ format }));
 }
-
-const otherFormats = (current: FormatSlug) =>
-  (Object.entries(FORMATS) as [FormatSlug, (typeof FORMATS)[FormatSlug]][])
-    .filter(([slug]) => slug !== current);
 
 export default async function PdfFormatPage({ params }: Props) {
   const { format } = await params;
   const formatSlug = format.toLowerCase() as FormatSlug;
 
-  if (!isValidFormat(formatSlug)) redirect("/pdf/notion");
+  if (!isValidFormat(formatSlug) || formatSlug === "pdf") redirect("/pdf/notion");
 
   const f = FORMATS[formatSlug];
 
@@ -48,13 +51,6 @@ export default async function PdfFormatPage({ params }: Props) {
     <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-6">
       {/* Header */}
       <header className="flex flex-col items-center text-center gap-3">
-        <Link
-          href="/"
-          className="text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
-        >
-          &larr; Back to tools
-        </Link>
-
         <div className="flex items-center gap-3">
           <div className="size-10 flex items-center justify-center rounded-lg bg-secondary text-primary [&_svg]:size-6">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -71,7 +67,7 @@ export default async function PdfFormatPage({ params }: Props) {
         </div>
 
         <h1 className="font-serif text-3xl font-bold tracking-tight">
-          PDF to {f.label}
+          Convert any PDF to {f.label}
         </h1>
 
         <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
@@ -101,20 +97,6 @@ export default async function PdfFormatPage({ params }: Props) {
           </Badge>
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          Also available:{" "}
-          {otherFormats(formatSlug).map(([slug, fmt], i) => (
-            <span key={slug}>
-              {i > 0 && " | "}
-              <Link
-                href={`/pdf/${slug}`}
-                className="underline underline-offset-2 hover:text-foreground"
-              >
-                {fmt.label}
-              </Link>
-            </span>
-          ))}
-        </p>
       </header>
 
       {/* Converter tool */}
@@ -165,8 +147,8 @@ export default async function PdfFormatPage({ params }: Props) {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 mt-4 px-6 py-3 rounded-lg bg-primary text-primary-foreground text-sm font-semibold transition-opacity hover:opacity-90"
         >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
           Get the Chrome Extension
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
         </a>
       </section>
     </main>
