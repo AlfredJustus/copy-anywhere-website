@@ -34,20 +34,8 @@ const FAQ_ITEMS = [
     a: "Yes — drop a PDF (up to 10 pages) into the converter. Each page is OCR'd and converted to structured blocks you can paste directly into Notion, Obsidian, or Google Docs.",
   },
   {
-    q: "What about images with text?",
-    a: "Drop an image containing text (a screenshot, photo of notes, etc.) and it will be OCR'd and converted to formatted blocks, including any math or code in the image.",
-  },
-  {
-    q: "Is my data stored or sent to third parties?",
-    a: "Pasted content is processed entirely in your browser — nothing leaves your device. PDF and image OCR requires a server call to extract text, but no content is stored after processing.",
-  },
-  {
     q: "What's the difference between the website and the Chrome extension?",
     a: "The website lets you paste, drop PDFs, or drop images for conversion. The Chrome extension works in the background — whenever you copy text from an AI chat, it automatically formats it so you can paste directly into Notion, Obsidian, or Google Docs.",
-  },
-  {
-    q: "Does it preserve code blocks and syntax highlighting?",
-    a: "Yes. Code blocks are detected with their language and transferred as proper fenced code blocks. Syntax highlighting is preserved when pasting into Notion or Obsidian.",
   },
 ];
 
