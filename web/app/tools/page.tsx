@@ -44,7 +44,7 @@ export default function ToolsPage() {
               <Card className="transition-all hover:shadow-lg hover:ring-accent/30 group">
                 <CardHeader>
                   <div className="flex items-center gap-3">
-                    <LogoIcon src={fmt.logo} alt="" size={40} shape="rounded" invertDark={slug === "notion"} />
+                    <LogoIcon src={fmt.logo} alt="" size={40} shape="rounded" />
                     <div className="flex flex-col gap-0.5">
                       <CardTitle className="text-base font-semibold group-hover:text-accent-foreground transition-colors">
                         {slug === "pdf" ? `Save as ${label}` : `Copy to ${label}`}

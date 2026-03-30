@@ -2,7 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { NotionSeshPreview } from "@/components/NotionSeshPreview";
 import { PdfPreviewShell } from "@/components/PdfPreviewShell";
 import { LogoIcon } from "@/components/LogoIcon";
@@ -19,6 +19,12 @@ const FORMAT_LOGOS: { key: FormatSlug; logo: string }[] = [
   { key: "markdown", logo: FORMATS.markdown.logo },
   { key: "google-docs", logo: FORMATS["google-docs"].logo },
 ];
+
+const PASTE_DESTINATIONS: Partial<Record<FormatSlug, string>> = {
+  notion: "Notion",
+  markdown: "Obsidian",
+  "google-docs": "Google Docs",
+};
 
 const CheckIcon = () => (
   <svg className="animate-checkPop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
@@ -342,7 +348,9 @@ export function ResultPreview({ blocks, formatSlug, onReset }: ResultPreviewProp
               {copied ? (
                 <>
                   <CheckIcon />
-                  Copied!
+                  {formatSlug && PASTE_DESTINATIONS[formatSlug]
+                    ? `Now paste in ${PASTE_DESTINATIONS[formatSlug]}`
+                    : "Now paste Anywhere"}
                 </>
               ) : (
                 <>
@@ -353,13 +361,12 @@ export function ResultPreview({ blocks, formatSlug, onReset }: ResultPreviewProp
                         alt=""
                         size={20}
                         shape="bare"
-                        invertDark={orderedLogos[0].key === "notion"}
                       />
                       Copy to {FORMATS[orderedLogos[0].key].label}
                     </>
                   ) : (
                     <>
-                      Copy
+                      Copy Anywhere
                       <span className="flex items-center -space-x-1">
                         {orderedLogos.map(({ key, logo }) => (
                           <LogoIcon
@@ -368,7 +375,6 @@ export function ResultPreview({ blocks, formatSlug, onReset }: ResultPreviewProp
                             alt=""
                             size={20}
                             shape="bare"
-                            invertDark={key === "notion"}
                           />
                         ))}
                       </span>

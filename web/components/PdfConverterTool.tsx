@@ -57,9 +57,11 @@ export function PdfConverterTool({ formatSlug = "notion" }: PdfConverterToolProp
 
       setProgress({ current: 0, total: pdf.numPages });
 
-      const pageMarkdown: string[] = [];
+      // Rasterize and OCR pages concurrently: start each OCR request
+      // as soon as its page is rasterized so rendering and network overlap.
+      let completed = 0;
+      const ocrPromises: Promise<string>[] = [];
       for (let i = 1; i <= pdf.numPages; i += 1) {
-        setProgress({ current: i, total: pdf.numPages });
         const page = await pdf.getPage(i);
         const viewport = page.getViewport({ scale: 1.5 });
         const canvas = document.createElement("canvas");
@@ -68,12 +70,19 @@ export function PdfConverterTool({ formatSlug = "notion" }: PdfConverterToolProp
         canvas.width = Math.ceil(viewport.width);
         canvas.height = Math.ceil(viewport.height);
         await page.render({ canvas, canvasContext: context, viewport }).promise;
+        const base64 = canvas.toDataURL("image/png").split(",")[1];
 
-        const imageDataUrl = canvas.toDataURL("image/png");
-        const base64 = imageDataUrl.split(",")[1];
-        const markdown = await ocrImage(base64, "pdf", i);
-        pageMarkdown.push(markdown);
+        // Fire OCR immediately, don't await — it runs while next page rasterizes
+        ocrPromises.push(
+          ocrImage(base64, "pdf", i).then((markdown) => {
+            completed += 1;
+            setProgress({ current: completed, total: pdf.numPages });
+            return markdown;
+          })
+        );
       }
+
+      const pageMarkdown = await Promise.all(ocrPromises);
 
       const combined = pageMarkdown
         .map((text) => (text || "").trim())

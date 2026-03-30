@@ -85,7 +85,7 @@ export default function Home() {
             <div className="flex items-center gap-4">
               {FORMAT_ENTRIES.map(([key, f]) => (
                 <Link key={key} href={FORMAT_ROUTES[key]} className="flex flex-col items-center gap-1.5 no-underline hover:opacity-80 transition-opacity">
-                  <LogoIcon src={f.logo} alt={f.label} size={40} invertDark={key === "notion"} className="ring-2 ring-background" />
+                  <LogoIcon src={f.logo} alt={f.label} size={40} className="ring-2 ring-background" />
                   <span className="text-[11px] font-medium text-muted-foreground">
                     {key === "markdown" ? "Obsidian" : key === "google-docs" ? "Docs" : f.label}
                   </span>

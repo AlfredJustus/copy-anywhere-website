@@ -14,6 +14,12 @@ type CopyFeedback = null | "notion" | "markdown" | "google-docs";
 
 const sanitizeLatex = (s: string) => s;
 
+const PASTE_DESTINATIONS: Record<string, string> = {
+  notion: "Notion",
+  markdown: "Obsidian",
+  "google-docs": "Google Docs",
+};
+
 const CheckIcon = () => (
   <svg className="animate-checkPop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
 );
@@ -116,7 +122,7 @@ export function CopyActionBar({ blocks, formatSlug }: CopyActionBarProps) {
             onClick={handler}
           >
             {copyFeedback === key ? (
-              <><CheckIcon /> Copied!</>
+              <><CheckIcon /> Now paste in {PASTE_DESTINATIONS[key]}</>
             ) : (
               <>
                 <LogoIcon
@@ -124,7 +130,6 @@ export function CopyActionBar({ blocks, formatSlug }: CopyActionBarProps) {
                   alt=""
                   size={20}
                   shape="bare"
-                  invertDark={key === "notion"}
                 />
                 {FORMATS[key].label}
               </>

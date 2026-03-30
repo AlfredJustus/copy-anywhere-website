@@ -24,7 +24,7 @@ export default function NotionPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-6">
       <header className="flex flex-col items-center text-center gap-3">
-        <LogoIcon src={f.logo} alt={f.label} size={48} shape="rounded" invertDark />
+        <LogoIcon src={f.logo} alt={f.label} size={48} shape="rounded" />
         <h1 className="font-serif text-3xl font-bold tracking-tight">
           Paste Anything into {f.label}
         </h1>

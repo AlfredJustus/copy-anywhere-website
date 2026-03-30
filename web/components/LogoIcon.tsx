@@ -19,6 +19,12 @@ const DARK_VARIANT: Record<string, string> = {
   "/logos/pdf.svg": "/logos/pdf-dark.svg",
 };
 
+/** Logos that are dark/black and should be inverted in dark mode. */
+const AUTO_INVERT_DARK = new Set([
+  "/logos/openai.svg",
+  "/logos/xai.svg",
+]);
+
 interface LogoIconProps {
   src: string;
   /** Optional dark-mode variant image source (overrides DARK_VARIANT map) */
@@ -47,7 +53,8 @@ export function LogoIcon({
 }: LogoIconProps) {
   const scale = INNER_SCALE[src] ?? DEFAULT_SCALE;
   const innerSize = Math.round(size * scale);
-  const imgClass = `object-contain shrink-0${invertDark ? " dark:invert" : ""}`;
+  const shouldInvert = invertDark || AUTO_INVERT_DARK.has(src);
+  const imgClass = `object-contain shrink-0${shouldInvert ? " dark:invert" : ""}`;
   const darkSrc = srcDark ?? DARK_VARIANT[src];
 
   const darkImg = darkSrc ? (

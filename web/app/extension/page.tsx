@@ -149,16 +149,16 @@ export default function ExtensionPage() {
         <div className="flex flex-wrap justify-center gap-5 sm:gap-7 mt-2">
           {[
             { src: "/logos/gemini.svg", alt: "Gemini" },
-            { src: "/logos/xai.svg", alt: "xAI" },
+            { src: "/logos/xai.svg", alt: "xAI", invert: true },
             { src: "/logos/deepseek.svg", alt: "DeepSeek" },
             { src: "/logos/claude.svg", alt: "Claude" },
-            { src: "/logos/openai.svg", alt: "ChatGPT" },
-          ].map(({ src, alt }) => (
+            { src: "/logos/openai.svg", alt: "ChatGPT", invert: true },
+          ].map(({ src, alt, invert }: { src: string; alt: string; invert?: boolean }) => (
             <div
               key={alt}
               className="w-[120px] sm:w-[156px] h-[100px] sm:h-[132px] grid place-items-center rounded-3xl bg-card border border-border shadow-sm"
             >
-              <Image src={src} alt={alt} width={72} height={72} className="w-14 sm:w-[72px] h-14 sm:h-[72px] object-contain" />
+              <Image src={src} alt={alt} width={72} height={72} className={`w-14 sm:w-[72px] h-14 sm:h-[72px] object-contain${invert ? " dark:invert" : ""}`} />
             </div>
           ))}
         </div>

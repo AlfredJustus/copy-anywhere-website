@@ -37,7 +37,7 @@
   --accent-light: rgba(224, 136, 96, 0.15);
   --success: #3da76a;
   --success-light: rgba(61, 167, 106, 0.15);
-  --primary-fg: #1a1a1e;
+  --primary-fg: #ffffff;
   --error: #e74c3c;
   --error-light: rgba(231, 76, 60, 0.12);
   --warning: #f0923a;
@@ -683,6 +683,7 @@ a { color: inherit; }
   border-radius: 20px;
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.98);
+  color: #1a1a1e;
   box-shadow: 0 12px 32px rgba(35, 25, 18, 0.06);
 }
 
@@ -717,6 +718,7 @@ a { color: inherit; }
   padding: 7px 11px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.95);
+  color: #1a1a1e;
   border: 1px solid var(--border);
   box-shadow: 0 8px 20px rgba(35, 25, 18, 0.06);
   font-size: 12px;

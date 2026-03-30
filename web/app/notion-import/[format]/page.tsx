@@ -54,11 +54,11 @@ export default async function NotionImportFormatPage({ params }: Props) {
       {/* Header */}
       <header className="flex flex-col items-center text-center gap-3">
         <div className="flex items-center gap-3">
-          <LogoIcon src="/logos/notion-logo.svg" alt="Notion" size={40} shape="rounded" invertDark />
+          <LogoIcon src="/logos/notion-logo.svg" alt="Notion" size={40} shape="rounded" />
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
             <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
           </svg>
-          <LogoIcon src={f.logo} alt={f.label} size={40} shape="rounded" invertDark={formatSlug === "notion"} />
+          <LogoIcon src={f.logo} alt={f.label} size={40} shape="rounded" />
         </div>
 
         <h1 className="font-serif text-3xl font-bold tracking-tight">
