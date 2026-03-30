@@ -29,7 +29,7 @@ export default function ToolsPage() {
     <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-8">
       {/* Header */}
       <section className="pb-2">
-        <h1 className="font-serif text-3xl font-bold tracking-tight">Browse All Converters</h1>
+        <h1 className="page-title text-3xl">Browse All Converters</h1>
         <p className="mt-2 text-muted-foreground text-sm leading-relaxed max-w-md">
           Pick a destination. Each tool handles paste, PDF, and image input.
         </p>

@@ -97,7 +97,7 @@ export default function ExtensionPage() {
           <kbd className="inline-flex items-center justify-center h-11 min-w-[44px] px-3.5 rounded-xl bg-card border border-border border-b-[3px] text-lg font-extrabold shadow-sm">Ctrl</kbd>
           <kbd className="inline-flex items-center justify-center h-11 min-w-[44px] px-3.5 rounded-xl bg-card border border-border border-b-[3px] text-lg font-extrabold shadow-sm">C</kbd>
         </div>
-        <h2 className="font-sans text-3xl sm:text-4xl font-extrabold tracking-tight">
+        <h2 className="page-title text-3xl sm:text-4xl">
           Install it once. Forget about it.
         </h2>
         <p className="text-muted-foreground text-lg leading-relaxed max-w-sm">
@@ -107,7 +107,7 @@ export default function ExtensionPage() {
 
       {/* Capture */}
       <section className="flex flex-col items-center text-center gap-6 border-t border-border pt-20">
-        <h2 className="font-sans text-3xl sm:text-4xl font-extrabold tracking-tight">
+        <h2 className="page-title text-3xl sm:text-4xl">
           Capture images and PDFs.
         </h2>
         <p className="text-muted-foreground text-lg leading-relaxed max-w-md">
@@ -139,7 +139,7 @@ export default function ExtensionPage() {
 
       {/* AI chats */}
       <section className="flex flex-col items-center text-center gap-6 border-t border-border pt-20">
-        <h2 className="font-sans text-3xl sm:text-4xl font-extrabold tracking-tight">
+        <h2 className="page-title text-3xl sm:text-4xl">
           Works with AI chats too.
         </h2>
         <p className="text-muted-foreground text-lg leading-relaxed max-w-md">

@@ -25,7 +25,7 @@ export default function NotionImportPage() {
       <header className="flex flex-col items-center text-center gap-3">
         <LogoIcon src="/logos/notion-logo.svg" alt="Notion" size={48} shape="rounded" />
 
-        <h1 className="font-serif text-3xl font-bold tracking-tight">
+        <h1 className="page-title text-3xl">
           Export Notion Pages to Google Docs
         </h1>
 

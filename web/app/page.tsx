@@ -63,7 +63,7 @@ export default function Home() {
         <>
           {/* Hero tagline */}
           <section className="text-center flex flex-col items-center gap-3">
-            <h1 className="font-serif text-3xl sm:text-4xl font-semibold tracking-tight text-balance leading-tight">
+            <h1 className="page-title text-3xl sm:text-4xl text-balance leading-tight">
               Paste or drop anything.{" "}
               We format it for you.
             </h1>

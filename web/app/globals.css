@@ -655,6 +655,22 @@ a { color: inherit; }
   --radius-4xl: calc(0.625rem * 2.6);
 }
 
+/* ── Shared page titles ── */
+
+@layer utilities {
+  .page-title {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+  }
+
+  .section-title {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+  }
+}
+
 /* ── Extension page ── */
 
 .extension-hero-tile {

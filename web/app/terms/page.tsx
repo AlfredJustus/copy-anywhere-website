@@ -16,7 +16,7 @@ function Section({
 }) {
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="font-serif text-xl font-semibold tracking-tight">
+      <h2 className="section-title text-xl">
         {title}
       </h2>
       {children}
@@ -28,7 +28,7 @@ export default function TermsPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-8">
       <header>
-        <h1 className="font-serif text-3xl font-bold tracking-tight">
+        <h1 className="page-title text-3xl">
           Terms of Service
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">

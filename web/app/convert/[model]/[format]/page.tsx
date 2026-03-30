@@ -68,7 +68,7 @@ export default async function ModelFormatPage({ params }: Props) {
           <LogoIcon src={f.logo} alt={f.label} size={40} shape="rounded"  />
         </div>
 
-        <h1 className="font-serif text-3xl font-bold tracking-tight">
+        <h1 className="page-title text-3xl">
           {m.label} to {f.label}, perfectly formatted
         </h1>
 

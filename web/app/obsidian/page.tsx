@@ -25,7 +25,7 @@ export default function ObsidianPage() {
     <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-6">
       <header className="flex flex-col items-center text-center gap-3">
         <LogoIcon src={f.logo} alt="Obsidian" size={48} shape="rounded" />
-        <h1 className="font-serif text-3xl font-bold tracking-tight">
+        <h1 className="page-title text-3xl">
           Paste Anything into Obsidian
         </h1>
         <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
