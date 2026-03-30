@@ -216,20 +216,16 @@ export function blocksToMarkdown(blocksArray: any[]): string {
 
 // ==================== Blocks to LaTeX ====================
 
-// Characters outside pdflatex's T1 encoding range that should be stripped.
-// Covers emoji, variation selectors, ZWJ, tag characters, and other symbols.
-const UNSUPPORTED_UNICODE_RE = /\p{Emoji_Presentation}|\p{Extended_Pictographic}|[\u{FE00}-\u{FE0F}\u{200D}\u{E0020}-\u{E007F}]/gu;
-
 function escapeLatex(s: string): string {
   return String(s || "")
-    .replace(UNSUPPORTED_UNICODE_RE, "")
     .replace(/\\/g, "\\textbackslash{}")
     .replace(/[&%$#_{}]/g, (m) => "\\" + m)
     .replace(/~/g, "\\textasciitilde{}")
     .replace(/\^/g, "\\textasciicircum{}")
     .replace(/\|/g, "\\textbar{}")
     .replace(/</g, "\\textless{}")
-    .replace(/>/g, "\\textgreater{}");
+    .replace(/>/g, "\\textgreater{}")
+    .replace(/\p{Emoji_Presentation}+/gu, (m) => `{\\EmojiFont ${m}}`);
 }
 
 function richTextToLaTeX(titleArray: any[]): string {
@@ -265,7 +261,7 @@ function richTextToLaTeX(titleArray: any[]): string {
 
     let content = code ? String(text || "") : escapeLatex(text);
 
-    if (code) content = `\\texttt{${escapeLatex(text)}}`;
+    if (code) content = `\\inlinecode{${escapeLatex(text)}}`;
     if (bold) content = `\\textbf{${content}}`;
     if (italic) content = `\\textit{${content}}`;
     if (link) content = `\\href{${String(link).replace(/[%#]/g, (m) => "\\" + m)}}{${content}}`;
@@ -281,10 +277,12 @@ function tableCellToLaTeX(cell: any): string {
 }
 
 const LATEX_PREAMBLE = `\\documentclass[11pt,a4paper]{article}
-\\usepackage[utf8]{inputenc}
-\\usepackage[T1]{fontenc}
-\\usepackage{lmodern}
-\\usepackage{amsmath,amssymb,amsfonts}
+\\usepackage{fontspec}
+\\usepackage{amsmath}
+\\usepackage{unicode-math}
+\\setmainfont{Latin Modern Roman}
+\\setmathfont{Latin Modern Math}
+\\newfontface{\\EmojiFont}{TwemojiMozilla}
 \\usepackage{listings}
 \\usepackage{hyperref}
 \\usepackage{csquotes}
@@ -294,6 +292,7 @@ const LATEX_PREAMBLE = `\\documentclass[11pt,a4paper]{article}
 \\usepackage{xcolor}
 \\geometry{margin=1in}
 \\lstset{basicstyle=\\ttfamily\\small,breaklines=true,frame=single,backgroundcolor=\\color[gray]{0.97},xleftmargin=0.5em,xrightmargin=0.5em}
+\\newcommand{\\inlinecode}[1]{{\\ttfamily\\colorbox{gray!12}{#1}}}
 \\setlength{\\parindent}{0pt}
 \\setlength{\\parskip}{0.5em}
 \\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}

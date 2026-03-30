@@ -43,8 +43,7 @@ export function MathLiveField({ value, onChange, className }: MathLiveFieldProps
     const mf = document.createElement("math-field") as any;
     mf.setAttribute("virtual-keyboard-mode", "onfocus");
     mf.smartSuperscript = false;
-    mf.smartMode = true;
-    mf.mathModeSpace = "\\;";
+    mf.smartMode = false;
 
     // Fix German keyboard: ^ (IntlBackslash) conflicts with switchMode("latex")
     const removeConflict = (bindings: any[]) =>
@@ -63,6 +62,8 @@ export function MathLiveField({ value, onChange, className }: MathLiveFieldProps
       { key: "meta+backspace", command: "deleteToMathFieldStart" },
       // Cmd+Delete: delete to end of field
       { key: "meta+delete", command: "deleteToMathFieldEnd" },
+      // Spacebar in math mode: exit current group instead of inserting invisible \;
+      { key: "[Space]", ifMode: "math", command: "moveAfterParent" },
     ];
 
     try { mf.keybindings = patchBindings(mf.keybindings ?? []); } catch { /* */ }
@@ -80,9 +81,17 @@ export function MathLiveField({ value, onChange, className }: MathLiveFieldProps
     containerRef.current.appendChild(mf);
     mfRef.current = mf;
 
-    // Re-apply after element is connected
+    // Re-apply after element is connected + inject dark-mode text color
     requestAnimationFrame(() => {
       try { mf.keybindings = patchBindings(mf.keybindings ?? []); } catch { /* */ }
+      try {
+        const shadow = mf.shadowRoot;
+        if (shadow) {
+          const s = document.createElement("style");
+          s.textContent = `.ML__latex, .ML__container, .ML__content { color: var(--ink) !important; }`;
+          shadow.prepend(s);
+        }
+      } catch { /* */ }
     });
 
     return () => {

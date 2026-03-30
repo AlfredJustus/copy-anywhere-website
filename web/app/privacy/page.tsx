@@ -50,7 +50,7 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
         <p className="text-sm text-muted-foreground">
-          Last updated: 29 March 2026
+          Last updated: 31 March 2026
         </p>
         <p className="text-[15px] leading-relaxed text-muted-foreground mt-1">
           Copy Anywhere converts content between formats for Notion, Markdown,
@@ -63,9 +63,9 @@ export default function PrivacyPage() {
       <div className="rounded-xl border border-border bg-card px-5 py-4 shadow-card flex flex-col gap-2">
         <p className="text-sm font-semibold">The short version</p>
         <p className="text-sm text-muted-foreground leading-relaxed">
-          We don&apos;t have accounts, don&apos;t track you, and don&apos;t
-          store your content. Most processing happens in your browser. The only
-          cookie we set is for rate limiting.
+          We don&apos;t have accounts and don&apos;t store your content. Most
+          processing happens in your browser. We use cookies for rate limiting
+          and analytics (with your consent).
         </p>
       </div>
 
@@ -118,7 +118,7 @@ export default function PrivacyPage() {
                 Duration
               </span>
             </div>
-            <div className="grid grid-cols-[auto_1fr_auto]">
+            <div className="grid grid-cols-[auto_1fr_auto] border-b border-border">
               <span className="px-4 py-2.5 border-r border-border">
                 <code className="text-xs bg-[var(--accent-light)] rounded px-1.5 py-0.5">
                   device_id
@@ -128,6 +128,17 @@ export default function PrivacyPage() {
                 Rate limiting — caps usage at 2 PDFs and 5 images per day
               </span>
               <span className="px-4 py-2.5 text-muted-foreground">1 year</span>
+            </div>
+            <div className="grid grid-cols-[auto_1fr_auto]">
+              <span className="px-4 py-2.5 border-r border-border">
+                <code className="text-xs bg-[var(--accent-light)] rounded px-1.5 py-0.5">
+                  _ga / _ga_*
+                </code>
+              </span>
+              <span className="px-4 py-2.5 border-r border-border text-muted-foreground">
+                Google Analytics — only set after you consent
+              </span>
+              <span className="px-4 py-2.5 text-muted-foreground">2 years</span>
             </div>
           </div>
           <p className="text-[15px] leading-relaxed text-muted-foreground">
@@ -140,9 +151,17 @@ export default function PrivacyPage() {
 
         <Section title="Analytics">
           <p className="text-[15px] leading-relaxed text-muted-foreground">
-            We do not currently use any analytics or tracking tools. If we
-            introduce analytics in the future, we will update this policy and
-            obtain your consent where required by law before collecting any data.
+            We use <strong className="font-semibold text-foreground">Google Analytics</strong> to
+            understand how visitors use the site (page views, scrolls, outbound
+            clicks). Analytics cookies are only set after you give consent via
+            the cookie banner. You can withdraw consent at any time by clearing
+            your browser cookies — analytics tracking will stop until you
+            consent again.
+          </p>
+          <p className="text-[15px] leading-relaxed text-muted-foreground">
+            We also use <strong className="font-semibold text-foreground">Vercel Analytics</strong> for
+            aggregated performance metrics. Vercel Analytics does not use
+            cookies and does not collect personally identifiable information.
           </p>
         </Section>
 
@@ -162,6 +181,23 @@ export default function PrivacyPage() {
             </Bullet>
             <Bullet label="Notion API">
               receives page IDs when you import a public Notion page.
+            </Bullet>
+            <Bullet label="Google Analytics">
+              receives anonymized usage data (page views, device type, country)
+              when you consent to analytics cookies. See{" "}
+              <a
+                href="https://policies.google.com/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[var(--accent)] underline underline-offset-2 decoration-[var(--accent)]/30 hover:decoration-[var(--accent)] transition-colors"
+              >
+                Google&apos;s Privacy Policy
+              </a>
+              .
+            </Bullet>
+            <Bullet label="Vercel Analytics">
+              receives aggregated web vitals and page view counts. No cookies
+              are used and no personally identifiable information is collected.
             </Bullet>
             <Bullet label="Google Fonts">
               loads typefaces used on this site. Your browser sends standard HTTP

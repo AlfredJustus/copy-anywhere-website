@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { DM_Sans, Source_Serif_4 } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { SITE_URL } from "@/lib/config/models";
 import { SiteHeader } from "@/components/SiteHeader";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
+import { CookieBanner } from "@/components/CookieBanner";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -91,6 +94,9 @@ export default function RootLayout({
             Terms of Service
           </a>
         </footer>
+        <GoogleAnalytics />
+        <CookieBanner />
+        <Analytics />
       </body>
     </html>
   );
