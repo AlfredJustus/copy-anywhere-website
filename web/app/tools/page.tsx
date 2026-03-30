@@ -66,6 +66,37 @@ export default function ToolsPage() {
         })}
       </section>
 
+      {/* Equation Tools */}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold text-foreground">Equation Tools</h2>
+        <Link href="/equation" className="no-underline text-inherit">
+          <Card className="transition-all hover:shadow-lg hover:ring-accent/30 group">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="size-10 flex items-center justify-center rounded-lg bg-secondary text-primary [&_svg]:size-5">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 7V4H6l6 8-6 8h12v-3" />
+                  </svg>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <CardTitle className="text-base font-semibold group-hover:text-accent-foreground transition-colors">
+                    Visual LaTeX Editor
+                  </CardTitle>
+                  <CardDescription>Type math visually, get LaTeX out. Copy to Notion, Obsidian, or Google Docs.</CardDescription>
+                </div>
+                <svg
+                  width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  className="ml-auto shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
+                </svg>
+              </div>
+            </CardHeader>
+          </Card>
+        </Link>
+      </section>
+
       {/* Chrome Extension CTA */}
       <section className="text-center py-6 border-t border-border mt-2">
         <p className="text-base font-semibold text-foreground">

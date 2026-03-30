@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { LogoIcon } from "@/components/LogoIcon";
 import { UniversalTool } from "@/components/UniversalTool";
+import { EquationEditor } from "@/components/EquationEditor";
 import { MODELS, FORMATS, CWS_LISTING_URL } from "@/lib/config/models";
 import { Badge } from "@/components/ui/badge";
 
@@ -97,6 +98,18 @@ export default function GoogleDocsPage() {
                 <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
               </svg>
             </Link>
+            <Link
+              href="/equation/google-docs"
+              className="no-underline text-inherit flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-secondary/60 transition-colors group"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-primary">
+                <path d="M18 7V4H6l6 8-6 8h12v-3" />
+              </svg>
+              <span className="text-sm font-medium">Equation to {f.label}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
+              </svg>
+            </Link>
           </div>
         </div>
         <div className="flex flex-wrap gap-1.5 mt-1 px-1">
@@ -104,6 +117,17 @@ export default function GoogleDocsPage() {
             <Badge key={b} variant="secondary">{b}</Badge>
           ))}
         </div>
+      </section>
+
+      {/* Equation Editor */}
+      <section className="flex flex-col gap-3 mt-4">
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground px-1">
+          Equation Editor
+        </h2>
+        <p className="text-sm text-muted-foreground px-1">
+          Type math visually and copy equations directly to {f.label}.
+        </p>
+        <EquationEditor formatSlug={formatSlug} />
       </section>
 
       <section className="text-center py-6 border-t border-border mt-2">

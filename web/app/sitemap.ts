@@ -15,6 +15,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/notion-import/google-docs`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.6 },
     { url: `${SITE_URL}/notion-import/pdf`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.6 },
     { url: `${SITE_URL}/pdf-download`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.9 },
+    { url: `${SITE_URL}/equation`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.8 },
     { url: `${SITE_URL}/extension`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.9 },
     { url: `${SITE_URL}/privacy`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.3 },
     { url: `${SITE_URL}/terms`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.3 },
@@ -43,5 +44,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
-  return [...staticPages, ...convertPages, ...pdfPages, ...imagePages];
+  const equationPages: MetadataRoute.Sitemap = ["notion", "obsidian", "google-docs"].map((format) => ({
+    url: `${SITE_URL}/equation/${format}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
+  return [...staticPages, ...convertPages, ...pdfPages, ...imagePages, ...equationPages];
 }

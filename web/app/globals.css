@@ -768,3 +768,39 @@ a { color: inherit; }
     box-shadow: 0 0 0 9999px rgba(45, 36, 22, 0.7);
   }
 }
+
+/* ── MathLive equation editor ── */
+.equation-editor-wrap math-field {
+  --caret-color: var(--accent);
+  --text-font-family: "KaTeX_Main", "Computer Modern", serif;
+  font-size: 1.25em;
+  min-height: 120px;
+  padding: 16px 20px;
+  border-radius: var(--radius-xl, 0.875rem);
+  border: 2px dashed var(--line);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  outline: none;
+  width: 100%;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.equation-editor-wrap math-field:focus-within {
+  border-color: var(--accent);
+  border-style: solid;
+  box-shadow: 0 0 0 4px var(--accent-light), var(--shadow);
+}
+
+.equation-editor-wrap .math-field-placeholder {
+  min-height: 120px;
+  border-radius: var(--radius-xl, 0.875rem);
+  border: 2px dashed var(--line);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+/* Add bottom padding when MathLive virtual keyboard is open */
+.equation-editor-wrap[data-keyboard-visible] {
+  padding-bottom: 320px;
+  transition: padding-bottom 0.3s ease;
+}

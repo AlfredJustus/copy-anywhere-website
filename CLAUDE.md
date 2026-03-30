@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Copy Anywhere Website — a Next.js web app that converts LLM output (pasted HTML/text, PDFs, images) into Notion blocks, Markdown, or Google Docs HTML. The conversion logic is mirrored from the Copy Anywhere Chrome extension.
+Copy Anywhere Website — a Next.js web app that converts any pasted or dropped content (HTML/text, PDFs, images) into Notion blocks, Markdown, or Google Docs HTML. Preserves rich formatting including math equations, code blocks, and tables. The conversion logic is mirrored from the Copy Anywhere Chrome extension.
 
 ## Commands
 
