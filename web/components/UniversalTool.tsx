@@ -109,7 +109,7 @@ export function UniversalTool({ formatSlug, onPhaseChange, onReset }: UniversalT
       let completed = 0;
       const ocrPromises: Promise<string>[] = [];
       for (let i = 1; i <= pdf.numPages; i += 1) {
-        setStatusText(`Processing page ${i} of ${pdf.numPages}\u2026`);
+        setStatusText("Preparing pages\u2026");
         const page = await pdf.getPage(i);
         const viewport = page.getViewport({ scale: 1.5 });
         const canvas = document.createElement("canvas");
@@ -125,7 +125,7 @@ export function UniversalTool({ formatSlug, onPhaseChange, onReset }: UniversalT
           ocrImage(base64, "pdf", i).then((markdown) => {
             completed += 1;
             setProgress({ current: completed, total: pdf.numPages });
-            setStatusText(`Processed ${completed} of ${pdf.numPages} pages\u2026`);
+            setStatusText(`Processing page ${completed} of ${pdf.numPages}\u2026`);
             return markdown;
           })
         );
