@@ -7,8 +7,49 @@ import { ClipboardPaste, FileText, ImageIcon } from "lucide-react";
 import { UniversalTool } from "@/components/UniversalTool";
 import { LogoIcon } from "@/components/LogoIcon";
 import { FORMATS, CWS_LISTING_URL } from "@/lib/config/models";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const FORMAT_ENTRIES = Object.entries(FORMATS) as [string, (typeof FORMATS)[keyof typeof FORMATS]][];
+
+const FAQ_ITEMS = [
+  {
+    q: "How do I paste ChatGPT into Notion without losing formatting?",
+    a: "Paste your ChatGPT output into the box above. Copy Anywhere converts it into native Notion blocks — headings, code blocks, tables, and math all transfer perfectly. Just paste the result into Notion.",
+  },
+  {
+    q: "Which AI chatbots are supported?",
+    a: "Copy Anywhere works with ChatGPT, Claude, Gemini, Grok, DeepSeek, and most other AI tools. You can also paste content from most other websites.",
+  },
+  {
+    q: "Does it work with math equations and LaTeX?",
+    a: "Yes. Math equations are preserved as proper LaTeX when you paste into Notion or Obsidian. Both inline math and display equations are supported, including complex notation like matrices and aligned equations.",
+  },
+  {
+    q: "Can I convert a PDF to Notion or Markdown?",
+    a: "Yes — drop a PDF (up to 10 pages) into the converter. Each page is OCR'd and converted to structured blocks you can paste directly into Notion, Obsidian, or Google Docs.",
+  },
+  {
+    q: "What about images with text?",
+    a: "Drop an image containing text (a screenshot, photo of notes, etc.) and it will be OCR'd and converted to formatted blocks, including any math or code in the image.",
+  },
+  {
+    q: "Is my data stored or sent to third parties?",
+    a: "Pasted content is processed entirely in your browser — nothing leaves your device. PDF and image OCR requires a server call to extract text, but no content is stored after processing.",
+  },
+  {
+    q: "What's the difference between the website and the Chrome extension?",
+    a: "The website lets you paste, drop PDFs, or drop images for conversion. The Chrome extension works in the background — whenever you copy text from an AI chat, it automatically formats it so you can paste directly into Notion, Obsidian, or Google Docs.",
+  },
+  {
+    q: "Does it preserve code blocks and syntax highlighting?",
+    a: "Yes. Code blocks are detected with their language and transferred as proper fenced code blocks. Syntax highlighting is preserved when pasting into Notion or Obsidian.",
+  },
+];
 
 const FORMAT_ROUTES: Record<string, string> = {
   notion: "/notion",
@@ -101,30 +142,64 @@ export default function Home() {
 
       {/* Extension CTA — hidden when showing results */}
       {showHero && (
-        <section className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4 mt-4 opacity-90">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/logo.svg"
-              alt=""
-              width={28}
-              height={28}
-              className="rounded-lg shadow-logo shrink-0"
-            />
-            <div>
-              <p className="text-sm font-semibold">Want this built into your browser?</p>
-              <p className="text-xs text-muted-foreground">Copy from AI chats with one click — no pasting needed.</p>
+        <>
+          <section className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-border bg-card px-5 py-4 mt-4 opacity-90">
+            <div className="flex items-center gap-3">
+              <Image
+                src="/logo.svg"
+                alt=""
+                width={28}
+                height={28}
+                className="rounded-lg shadow-logo shrink-0"
+              />
+              <div>
+                <p className="text-sm font-semibold">Want this built into your browser?</p>
+                <p className="text-xs text-muted-foreground">Copy from AI chats with one click — no pasting needed.</p>
+              </div>
             </div>
-          </div>
-          <a
-            href={CWS_LISTING_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
-            Get Chrome extension
-          </a>
-        </section>
+            <a
+              href={CWS_LISTING_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
+              Get Chrome extension
+            </a>
+          </section>
+
+          {/* FAQ */}
+          <section className="mt-8">
+            <h2 className="text-xl font-semibold text-center mb-4">Frequently Asked Questions</h2>
+            <Accordion defaultValue={[]} className="w-full">
+              {FAQ_ITEMS.map((item, i) => (
+                <AccordionItem key={i} value={`faq-${i}`}>
+                  <AccordionTrigger className="text-left text-sm">{item.q}</AccordionTrigger>
+                  <AccordionContent className="text-sm text-muted-foreground">{item.a}</AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </section>
+
+          {/* FAQ JSON-LD */}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                mainEntity: FAQ_ITEMS.map((item) => ({
+                  "@type": "Question",
+                  name: item.q,
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: item.a,
+                  },
+                })),
+              }),
+            }}
+          />
+        </>
       )}
     </main>
   );
