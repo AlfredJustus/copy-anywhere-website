@@ -18,12 +18,12 @@ const FORMAT_ENTRIES = Object.entries(FORMATS) as [string, (typeof FORMATS)[keyo
 
 const FAQ_ITEMS = [
   {
-    q: "How do I paste ChatGPT into Notion without losing formatting?",
-    a: "Paste your ChatGPT output into the box above. Copy Anywhere converts it into native Notion blocks — headings, code blocks, tables, and math all transfer perfectly. Just paste the result into Notion.",
+    q: "What content can I format with Copy Anywhere?",
+    a: "Literally anything. Paste from ChatGPT, Claude, Gemini, Grok, DeepSeek, or any other AI chatbot. Copy from websites, blogs, documentation, or emails. Drop a PDF or an image. Copy Anywhere handles it all — math, code blocks, tables, and rich text come through perfectly.",
   },
   {
-    q: "Which AI chatbots are supported?",
-    a: "Copy Anywhere works with ChatGPT, Claude, Gemini, Grok, DeepSeek, and most other AI tools. You can also paste content from most other websites.",
+    q: "How do I paste ChatGPT into Notion without losing formatting?",
+    a: "Paste your ChatGPT output into the box above. Copy Anywhere converts it into native Notion blocks — headings, code blocks, tables, and math all transfer perfectly. Just paste the result into Notion.",
   },
   {
     q: "Does it work with math equations and LaTeX?",
