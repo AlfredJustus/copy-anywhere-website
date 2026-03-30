@@ -597,6 +597,11 @@ function getMathDisplayMode(el: Element): "inline" | "block" {
   return "inline";
 }
 
+function tryDecodeURI(s: string | null): string | null {
+  if (!s) return s;
+  try { return decodeURIComponent(s); } catch { return s; }
+}
+
 function extractLatexFromMathElement(el: Element): any {
   const mathContainer =
     el.closest("mjx-container") ||
@@ -621,7 +626,7 @@ function extractLatexFromMathElement(el: Element): any {
   // Strategy B: Direct attributes
   const directLatex =
     mathContainer.getAttribute("data-math") ||
-    mathContainer.getAttribute("data-latex") ||
+    tryDecodeURI(mathContainer.getAttribute("data-latex")) ||
     mathContainer.getAttribute("alt") ||
     mathContainer.getAttribute("aria-label") ||
     mathContainer.getAttribute("title");
@@ -633,7 +638,7 @@ function extractLatexFromMathElement(el: Element): any {
   if (elParent) {
     const parentLatex =
       elParent.getAttribute("data-math") ||
-      elParent.getAttribute("data-latex") ||
+      tryDecodeURI(elParent.getAttribute("data-latex")) ||
       elParent.getAttribute("alt") ||
       elParent.getAttribute("aria-label");
     if (parentLatex && parentLatex.trim()) {
@@ -644,7 +649,7 @@ function extractLatexFromMathElement(el: Element): any {
   const grandparent = elParent?.parentElement;
   if (grandparent) {
     const gpLatex =
-      grandparent.getAttribute("data-math") || grandparent.getAttribute("data-latex");
+      grandparent.getAttribute("data-math") || tryDecodeURI(grandparent.getAttribute("data-latex"));
     if (gpLatex && gpLatex.trim()) {
       return cleanLatexString(gpLatex);
     }
@@ -684,11 +689,11 @@ function extractLatexFromMathElement(el: Element): any {
 
   // KaTeX data attributes
   if ((mathContainer as HTMLElement).dataset?.math) return cleanLatexString((mathContainer as HTMLElement).dataset.math!);
-  if ((mathContainer as HTMLElement).dataset?.latex) return (mathContainer as HTMLElement).dataset.latex;
+  if ((mathContainer as HTMLElement).dataset?.latex) return tryDecodeURI((mathContainer as HTMLElement).dataset.latex!);
   if ((mathContainer as HTMLElement).dataset?.tex) return (mathContainer as HTMLElement).dataset.tex;
 
   const texEl = mathContainer.querySelector("[data-tex]") || mathContainer.querySelector("[data-latex]");
-  if (texEl) return (texEl as HTMLElement).dataset.tex || (texEl as HTMLElement).dataset.latex;
+  if (texEl) return (texEl as HTMLElement).dataset.tex || tryDecodeURI((texEl as HTMLElement).dataset.latex ?? null);
 
   // Strategy C2: Google Search AI Overview (data-xpm-latex)
   const xpmContainer = el.closest("[data-xpm-copy-root]") || mathContainer.closest("[data-xpm-copy-root]");
@@ -1039,6 +1044,16 @@ export function parseHtmlToBlocks(html: string): any[] | null {
         const liClone = li.cloneNode(true) as Element;
         liClone.querySelectorAll(":scope > ul, :scope > ol").forEach(sub => sub.remove());
         const segments = processInlineContent(liClone);
+        // Strip redundant leading number prefix (e.g. "1.") from <li> text in <ol>,
+        // since the list structure already implies numbering.
+        if (listType === "numbered_list" && segments.length > 0) {
+          const first = segments[0];
+          if (first.length > 0 && typeof first[0][0] === "string") {
+            first[0] = [...first[0]];
+            first[0][0] = first[0][0].replace(/^\d+\.\s*/, "");
+            if (first[0][0] === "" && first.length > 1) first.shift();
+          }
+        }
         segments.forEach((richText: any[], segIdx: number) => {
           if (richText.length === 1 && richText[0][0] === "$$DISPLAY_MATH$$") {
             const latex = richText[0][1]?.[0]?.[1];

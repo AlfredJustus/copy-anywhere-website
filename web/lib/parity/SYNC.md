@@ -35,6 +35,9 @@ These are the **only** intentional deviations from the extension source. Everyth
 ### serialize.ts
 - No environment-specific changes. Direct port.
 
+### htmlParser.ts (additional)
+- `tryDecodeURI` helper added before `extractLatexFromMathElement` — identical to the one in `utils/math-dom.js`. Wraps all `data-latex` attribute reads to decode URL-encoded LaTeX written by `htmlClipboard.ts`.
+
 ### htmlClipboard.ts
 - `chrome.runtime.getURL(MATHJAX_BUNDLE_PATH)` → CDN script tag: `https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg-full.js`
 - `import(...)` dynamic import → `document.createElement('script')` with `onload`/`onerror`
