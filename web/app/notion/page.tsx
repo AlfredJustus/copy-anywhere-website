@@ -3,9 +3,30 @@ import Link from "next/link";
 import Image from "next/image";
 import { LogoIcon } from "@/components/LogoIcon";
 import { UniversalTool } from "@/components/UniversalTool";
-import { EquationEditor } from "@/components/EquationEditor";
 import { MODELS, FORMATS, CWS_LISTING_URL } from "@/lib/config/models";
 import { Badge } from "@/components/ui/badge";
+import { PageFAQ } from "@/components/PageFAQ";
+import { BreadcrumbSchema } from "@/components/BreadcrumbSchema";
+import { HowToSchema } from "@/components/HowToSchema";
+
+const FAQ_ITEMS = [
+  {
+    q: "How do I paste into Notion and keep my formatting?",
+    a: "Copy your content with Copy Anywhere, then press Cmd+V (or Ctrl+V) in Notion. Blocks, equations, code, and tables all transfer as native Notion blocks — no manual cleanup needed.",
+  },
+  {
+    q: "Does this work with LaTeX equations?",
+    a: "Yes. Both inline and block equations are converted to Notion's native equation blocks, which render with KaTeX inside Notion.",
+  },
+  {
+    q: "Can I convert a PDF or screenshot into Notion blocks?",
+    a: "Yes. Drop a PDF or image file and it's OCR'd using AI. Tables, math, and code blocks are all preserved in the resulting Notion blocks.",
+  },
+  {
+    q: "What AI chats can I copy to Notion?",
+    a: "ChatGPT, Claude, Gemini, Grok, and DeepSeek are all supported. It also works with any website — just copy the content and paste it here.",
+  },
+];
 
 const f = FORMATS.notion;
 const formatSlug = "notion";
@@ -24,6 +45,17 @@ export const metadata: Metadata = {
 export default function NotionPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-6">
+      <BreadcrumbSchema items={[{ name: "Notion", href: "/notion" }]} />
+      <HowToSchema
+        name="How to paste anything into Notion with formatting"
+        description="Convert any content into native Notion blocks with math, code, and tables preserved."
+        steps={[
+          { name: "Copy your content", text: "Select and copy content from any website, AI chat, PDF, or image." },
+          { name: "Paste into Copy Anywhere", text: "Paste or drop your content into the converter on this page." },
+          { name: "Copy to Notion", text: "Click the 'Copy to Notion' button to copy the formatted blocks." },
+          { name: "Paste into Notion", text: "Press Cmd+V (or Ctrl+V) in Notion. Your content appears with all formatting intact." },
+        ]}
+      />
       <header className="flex flex-col items-center text-center gap-3">
         <LogoIcon src={f.logo} alt={f.label} size={48} shape="rounded" />
         <h1 className="page-title text-3xl">
@@ -106,16 +138,7 @@ export default function NotionPage() {
         </div>
       </section>
 
-      {/* Equation Editor */}
-      <section className="flex flex-col gap-3 mt-4">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground px-1">
-          Equation Editor
-        </h2>
-        <p className="text-sm text-muted-foreground px-1">
-          Type math visually and copy equations directly to {f.label}.
-        </p>
-        <EquationEditor formatSlug={formatSlug} />
-      </section>
+      <PageFAQ items={FAQ_ITEMS} />
 
       <section className="text-center py-6 border-t border-border mt-2">
         <p className="text-base font-semibold text-foreground">

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { CWS_LISTING_URL } from "@/lib/config/models";
+import { BreadcrumbSchema } from "@/components/BreadcrumbSchema";
 
 export const metadata: Metadata = {
   title: "Chrome Extension – Copy Anywhere",
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
 export default function ExtensionPage() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-16 flex flex-col gap-20">
+      <BreadcrumbSchema items={[{ name: "Chrome Extension", href: "/extension" }]} />
       {/* Hero */}
       <section className="flex flex-col items-center text-center gap-6">
         <div className="extension-hero-tile">

@@ -9,6 +9,10 @@ import {
   isValidFormat,
   type FormatSlug,
 } from "@/lib/config/models";
+import { PageFAQ, type FAQItem } from "@/components/PageFAQ";
+import { BreadcrumbSchema } from "@/components/BreadcrumbSchema";
+import { HowToSchema } from "@/components/HowToSchema";
+import { RelatedConverters } from "@/components/RelatedConverters";
 import type { Metadata } from "next";
 
 type Props = { params: Promise<{ format: string }> };
@@ -47,8 +51,36 @@ export default async function ImageFormatPage({ params }: Props) {
 
   const f = FORMATS[formatSlug];
 
+  const faqItems: FAQItem[] = [
+    {
+      q: `How does image to ${f.label} work?`,
+      a: `Drop or select an image file (PNG, JPG, WEBP, and more). The image is OCR'd using AI to extract text, math, tables, and code, which are then converted to ${f.label} format.`,
+    },
+    {
+      q: "How accurate is the OCR for equations?",
+      a: "Very accurate for printed and typed equations. Handwritten math may have lower accuracy. You can check the preview before copying to verify the result.",
+    },
+    {
+      q: "What image formats are supported?",
+      a: "PNG, JPG, WEBP, GIF, BMP, and TIFF are all supported. The image is processed entirely in your browser before OCR.",
+    },
+  ];
+
   return (
     <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-6">
+      <BreadcrumbSchema items={[
+        { name: "Tools", href: "/tools" },
+        { name: `Image to ${f.label}`, href: `/image/${formatSlug}` },
+      ]} />
+      <HowToSchema
+        name={`How to convert an image to ${f.label}`}
+        description={`Upload any image and convert it to ${f.label} with OCR-powered accuracy. Math, code, tables, and formatting preserved.`}
+        steps={[
+          { name: "Drop or select an image", text: "Drop an image file (PNG, JPG, WEBP) onto the converter or click to select one." },
+          { name: "Wait for OCR", text: "The image is OCR-processed to extract text, math, tables, and code." },
+          { name: `Copy to ${f.label}`, text: `Click 'Copy to ${f.label}' and paste the result into ${f.label}.` },
+        ]}
+      />
       {/* Header */}
       <header className="flex flex-col items-center text-center gap-3">
         <div className="flex items-center gap-3">
@@ -133,6 +165,10 @@ export default async function ImageFormatPage({ params }: Props) {
           </p>
         </section>
       </article>
+
+      <RelatedConverters formatSlug={formatSlug} currentSource={{ type: "image" }} />
+
+      <PageFAQ items={faqItems} />
 
       {/* Extension CTA */}
       <section className="text-center py-6 border-t border-border mt-2">

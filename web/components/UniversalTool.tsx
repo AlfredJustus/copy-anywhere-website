@@ -9,6 +9,7 @@ import { parseMarkdownToBlocks, jsonToNotionBlocks } from "@/lib/parity/blockFac
 import { ocrImage, readFileAsBase64, checkQuota, RateLimitError } from "@/lib/ocr";
 import { type FormatSlug, CWS_LISTING_URL } from "@/lib/config/models";
 import { Button } from "@/components/ui/button";
+import { SquigglyProgress } from "@/components/SquigglyProgress";
 
 type Phase = "idle" | "processing" | "ready" | "error" | "rate-limited";
 type InputSource = "clipboard" | "pdf" | "image";
@@ -29,6 +30,7 @@ export function UniversalTool({ formatSlug, onPhaseChange, onReset }: UniversalT
   const [errorMessage, setErrorMessage] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
   const [statusText, setStatusText] = useState("");
+  const [rasterProgress, setRasterProgress] = useState({ current: 0, total: 0 });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const zoneRef = useRef<HTMLDivElement>(null);
@@ -78,6 +80,7 @@ export function UniversalTool({ formatSlug, onPhaseChange, onReset }: UniversalT
     setFileName(file.name);
     setPhase("processing");
     setProgress({ current: 0, total: 0 });
+    setRasterProgress({ current: 0, total: 0 });
     setStatusText("Loading PDF\u2026");
 
     try {
@@ -103,13 +106,14 @@ export function UniversalTool({ formatSlug, onPhaseChange, onReset }: UniversalT
       }
 
       setProgress({ current: 0, total: pdf.numPages });
+      setRasterProgress({ current: 0, total: pdf.numPages });
+      setStatusText("Preparing pages\u2026");
 
       // Rasterize and OCR pages concurrently: start each OCR request
       // as soon as its page is rasterized so rendering and network overlap.
       let completed = 0;
       const ocrPromises: Promise<string>[] = [];
       for (let i = 1; i <= pdf.numPages; i += 1) {
-        setStatusText("Preparing pages\u2026");
         const page = await pdf.getPage(i);
         const viewport = page.getViewport({ scale: 1.5 });
         const canvas = document.createElement("canvas");
@@ -119,6 +123,7 @@ export function UniversalTool({ formatSlug, onPhaseChange, onReset }: UniversalT
         canvas.height = Math.ceil(viewport.height);
         await page.render({ canvas, canvasContext: context, viewport }).promise;
         const base64 = canvas.toDataURL("image/png").split(",")[1];
+        setRasterProgress({ current: i, total: pdf.numPages });
 
         // Fire OCR immediately, don't await — it runs while next page rasterizes
         ocrPromises.push(
@@ -294,6 +299,7 @@ export function UniversalTool({ formatSlug, onPhaseChange, onReset }: UniversalT
     setFileName("");
     setStatusText("");
     setProgress({ current: 0, total: 0 });
+    setRasterProgress({ current: 0, total: 0 });
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, []);
 
@@ -369,7 +375,13 @@ export function UniversalTool({ formatSlug, onPhaseChange, onReset }: UniversalT
 
           {phase === "processing" && (
             <div className="universal-zone-processing">
-              {inputSource === "pdf" && progress.total > 0 ? (
+              {inputSource === "pdf" && rasterProgress.total > 0 && progress.current === 0 ? (
+                <div className="pdf-progress-wrap">
+                  <p className="pdf-progress-label">Preparing pages&#8230;</p>
+                  <SquigglyProgress current={rasterProgress.current} total={rasterProgress.total} />
+                  <p className="pdf-progress-file">{fileName}</p>
+                </div>
+              ) : inputSource === "pdf" && progress.total > 0 ? (
                 <div className="pdf-progress-wrap">
                   <p className="pdf-progress-label">{statusText}</p>
                   <div className="pdf-progress-bar">
@@ -428,7 +440,7 @@ export function UniversalTool({ formatSlug, onPhaseChange, onReset }: UniversalT
         {/* Result: sticky toolbar + document preview */}
         {phase === "ready" && blocks.length > 0 && (
           <>
-            <ResultPreview blocks={blocks} formatSlug={formatSlug} onReset={handleReset} />
+            <ResultPreview blocks={blocks} formatSlug={formatSlug} onReset={handleReset} inputSource={inputSource} />
             {!formatSlug && (
               <section className="text-center py-6 border-t border-border mt-2">
                 <p className="text-base font-semibold text-foreground">

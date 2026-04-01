@@ -8,6 +8,7 @@ import { parseMarkdownToBlocks, jsonToNotionBlocks } from "@/lib/parity/blockFac
 import { ocrImage, checkQuota, RateLimitError } from "@/lib/ocr";
 import { type FormatSlug } from "@/lib/config/models";
 import { Button } from "@/components/ui/button";
+import { SquigglyProgress } from "@/components/SquigglyProgress";
 
 type Phase = "idle" | "processing" | "ready" | "error" | "rate-limited";
 
@@ -19,6 +20,7 @@ export function PdfConverterTool({ formatSlug = "notion" }: PdfConverterToolProp
   const [blocks, setBlocks] = useState<any[]>([]);
   const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [rasterProgress, setRasterProgress] = useState({ current: 0, total: 0 });
   const [fileName, setFileName] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
@@ -56,6 +58,7 @@ export function PdfConverterTool({ formatSlug = "notion" }: PdfConverterToolProp
       }
 
       setProgress({ current: 0, total: pdf.numPages });
+      setRasterProgress({ current: 0, total: pdf.numPages });
 
       // Rasterize and OCR pages concurrently: start each OCR request
       // as soon as its page is rasterized so rendering and network overlap.
@@ -71,6 +74,7 @@ export function PdfConverterTool({ formatSlug = "notion" }: PdfConverterToolProp
         canvas.height = Math.ceil(viewport.height);
         await page.render({ canvas, canvasContext: context, viewport }).promise;
         const base64 = canvas.toDataURL("image/png").split(",")[1];
+        setRasterProgress({ current: i, total: pdf.numPages });
 
         // Fire OCR immediately, don't await — it runs while next page rasterizes
         ocrPromises.push(
@@ -119,6 +123,7 @@ export function PdfConverterTool({ formatSlug = "notion" }: PdfConverterToolProp
     setErrorMessage("");
     setFileName("");
     setProgress({ current: 0, total: 0 });
+    setRasterProgress({ current: 0, total: 0 });
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -200,7 +205,22 @@ export function PdfConverterTool({ formatSlug = "notion" }: PdfConverterToolProp
           </>
         )}
 
-        {phase === "processing" && (
+        {phase === "processing" && rasterProgress.total === 0 && progress.current === 0 && (
+          <div className="pdf-progress-wrap">
+            <p className="pdf-progress-label">Loading PDF&#8230;</p>
+            <p className="pdf-progress-file">{fileName}</p>
+          </div>
+        )}
+
+        {phase === "processing" && rasterProgress.total > 0 && progress.current === 0 && (
+          <div className="pdf-progress-wrap">
+            <p className="pdf-progress-label">Preparing pages&#8230;</p>
+            <SquigglyProgress current={rasterProgress.current} total={rasterProgress.total} />
+            <p className="pdf-progress-file">{fileName}</p>
+          </div>
+        )}
+
+        {phase === "processing" && progress.current > 0 && (
           <div className="pdf-progress-wrap">
             <p className="pdf-progress-label">
               Processing page {progress.current} of {progress.total}&#8230;
@@ -212,18 +232,6 @@ export function PdfConverterTool({ formatSlug = "notion" }: PdfConverterToolProp
               />
             </div>
             <p className="pdf-progress-file">{fileName}</p>
-          </div>
-        )}
-
-        {phase === "ready" && (
-          <div className="drop-zone-collapsed-inner">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
-            <span>{fileName} converted</span>
-            <Button variant="outline" size="sm" className="ml-auto" onClick={handleReset}>
-              Upload new
-            </Button>
           </div>
         )}
 

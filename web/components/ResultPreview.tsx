@@ -8,11 +8,50 @@ import { PdfPreviewShell } from "@/components/PdfPreviewShell";
 import { LogoIcon } from "@/components/LogoIcon";
 import { blocksToMarkdown, buildNotionPayload, getBlockData } from "@/lib/parity/serialize";
 import { buildClipboardHtmlFromBlocks } from "@/lib/parity/htmlClipboard";
+import { usePrecomputedHtml } from "@/components/usePrecomputedHtml";
 import { FORMATS, type FormatSlug } from "@/lib/config/models";
 import { Button } from "@/components/ui/button";
+import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { renderPdfBlob, downloadBlob, type PdfProgress } from "@/lib/pdf/renderPdf";
 
 const sanitizeLatex = (s: string) => s;
+
+/* ── Clipboard helper ─────────────────────────────────── */
+
+interface CopyResult {
+  ok: boolean;
+  wrote: Record<string, boolean>;
+}
+
+function tryCopy(types: Record<string, string>): CopyResult {
+  const wrote: Record<string, boolean> = {};
+  let cdAvailable = false;
+  const listener = (e: Event) => {
+    const ce = e as ClipboardEvent;
+    ce.preventDefault();
+    ce.stopImmediatePropagation();
+    const cd = ce.clipboardData;
+    if (!cd) return;
+    cdAvailable = true;
+    for (const [mime, data] of Object.entries(types)) {
+      cd.setData(mime, data);
+      wrote[mime] = cd.getData(mime) !== "";
+    }
+  };
+  document.addEventListener("copy", listener, true);
+  let ok = false;
+  try {
+    ok = document.execCommand("copy") && cdAvailable;
+  } finally {
+    document.removeEventListener("copy", listener, true);
+  }
+  return { ok, wrote };
+}
+
+type CopyFeedback = null
+  | { status: "success" }
+  | { status: "partial"; message: string }
+  | { status: "failed" };
 
 const FORMAT_LOGOS: { key: FormatSlug; logo: string }[] = [
   { key: "notion", logo: FORMATS.notion.logo },
@@ -30,8 +69,20 @@ const CheckIcon = () => (
   <svg className="animate-checkPop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
 );
 
+const WarnIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+);
+
+const XIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+);
+
 const DownloadIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+);
+
+const ShareIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
 );
 
 const SpinnerIcon = ({ size = 16 }: { size?: number }) => (
@@ -47,6 +98,8 @@ interface ResultPreviewProps {
   blocks: any[];
   formatSlug?: FormatSlug;
   onReset: () => void;
+  sourceHtml?: string;
+  inputSource?: string;
 }
 
 function deriveTitle(blocks: any[]): string {
@@ -60,12 +113,13 @@ function deriveTitle(blocks: any[]): string {
   return "Copy Anywhere";
 }
 
-export function ResultPreview({ blocks, formatSlug, onReset }: ResultPreviewProps) {
+export function ResultPreview({ blocks, formatSlug, onReset, sourceHtml, inputSource }: ResultPreviewProps) {
   const isPdfMode = formatSlug === "pdf";
+  const precomputed = usePrecomputedHtml(blocks);
 
   const defaultTitle = useMemo(() => deriveTitle(blocks), [blocks]);
   const [pdfTitle, setPdfTitle] = useState(defaultTitle);
-  const [copied, setCopied] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<CopyFeedback>(null);
   const [pdfState, setPdfState] = useState<"idle" | "generating" | "done" | "error">("idle");
   const [pdfProgress, setPdfProgress] = useState<PdfProgress>("preparing");
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
@@ -73,6 +127,10 @@ export function ResultPreview({ blocks, formatSlug, onReset }: ResultPreviewProp
   const [pdfError, setPdfError] = useState<string | null>(null);
   // In standard mode: "blocks" = normal preview, "pdf" = inline PDF viewer
   const [viewMode, setViewMode] = useState<"blocks" | "pdf">(isPdfMode ? "pdf" : "blocks");
+  const [shareState, setShareState] = useState<"idle" | "sharing" | "shared">("idle");
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [copiedFormat, setCopiedFormat] = useState<FormatSlug | null>(null);
+  const copiedFormatTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -131,10 +189,10 @@ export function ResultPreview({ blocks, formatSlug, onReset }: ResultPreviewProp
     }
   }, [isPdfMode, blocks, pdfState, generatePdf]);
 
-  const flashCopied = () => {
+  const flash = (fb: CopyFeedback, ms = 2000) => {
     clearTimeout(feedbackTimer.current);
-    setCopied(true);
-    feedbackTimer.current = setTimeout(() => setCopied(false), 2000);
+    setCopyFeedback(fb);
+    feedbackTimer.current = setTimeout(() => setCopyFeedback(null), ms);
   };
 
   const handleCopy = async () => {
@@ -145,26 +203,53 @@ export function ResultPreview({ blocks, formatSlug, onReset }: ResultPreviewProp
       const notionPayload = needNotion ? buildNotionPayload(blocks) : null;
       const md = blocksToMarkdown(blocks);
       const html = needHtml
-        ? await buildClipboardHtmlFromBlocks(blocks, getBlockData, sanitizeLatex)
+        ? (precomputed.html ?? await buildClipboardHtmlFromBlocks(blocks, getBlockData, sanitizeLatex))
         : null;
 
-      const listener = (e: Event) => {
-        const ce = e as ClipboardEvent;
-        ce.preventDefault();
-        ce.stopImmediatePropagation();
-        if (notionPayload) ce.clipboardData?.setData("text/_notion-blocks-v3-production", notionPayload);
-        if (html) ce.clipboardData?.setData("text/html", html);
-        ce.clipboardData?.setData("text/plain", md);
-        ce.clipboardData?.setData("text/markdown", md);
-      };
-      document.addEventListener("copy", listener, true);
-      try {
-        document.execCommand("copy");
-        flashCopied();
-      } finally {
-        document.removeEventListener("copy", listener, true);
+      const types: Record<string, string> = { "text/plain": md, "text/markdown": md };
+      if (notionPayload) types["text/_notion-blocks-v3-production"] = notionPayload;
+      if (html) types["text/html"] = html;
+
+      const { ok, wrote } = tryCopy(types);
+
+      if (!ok || !wrote["text/plain"]) {
+        flash({ status: "failed" }, 3000);
+      } else {
+        const richFailed =
+          (notionPayload && !wrote["text/_notion-blocks-v3-production"]) ||
+          (html && !wrote["text/html"]);
+        if (richFailed) {
+          flash({ status: "partial", message: "Copied as plain text. Rich formatting did not copy." }, 3000);
+        } else {
+          flash({ status: "success" });
+        }
       }
-    } catch { /* */ }
+    } catch {
+      flash({ status: "failed" }, 3000);
+    }
+  };
+
+  const handleCopyFormat = async (fmt: FormatSlug) => {
+    try {
+      const md = blocksToMarkdown(blocks);
+      const types: Record<string, string> = { "text/plain": md, "text/markdown": md };
+
+      if (fmt === "notion") {
+        types["text/_notion-blocks-v3-production"] = buildNotionPayload(blocks);
+      } else if (fmt === "google-docs") {
+        const html = precomputed.html ?? await buildClipboardHtmlFromBlocks(blocks, getBlockData, sanitizeLatex);
+        if (html) types["text/html"] = html;
+      }
+
+      const { ok } = tryCopy(types);
+      if (ok) {
+        clearTimeout(copiedFormatTimer.current);
+        setCopiedFormat(fmt);
+        copiedFormatTimer.current = setTimeout(() => setCopiedFormat(null), 2000);
+      }
+    } catch {
+      // silent
+    }
   };
 
   const handlePdfDownload = () => {
@@ -186,7 +271,7 @@ export function ResultPreview({ blocks, formatSlug, onReset }: ResultPreviewProp
   };
 
   const handleReset = () => {
-    setCopied(false);
+    setCopyFeedback(null);
     setPdfState("idle");
     setViewMode(isPdfMode ? "pdf" : "blocks");
     if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
@@ -194,6 +279,34 @@ export function ResultPreview({ blocks, formatSlug, onReset }: ResultPreviewProp
     setPdfBlob(null);
     setPdfError(null);
     onReset();
+  };
+
+  const handleShare = async () => {
+    if (shareState === "sharing") return;
+    setShareState("sharing");
+    try {
+      const res = await fetch("/api/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          blocksJson: blocks,
+          title: defaultTitle !== "Copy Anywhere" ? defaultTitle : null,
+          inputSource,
+        }),
+      });
+      const data = await res.json();
+      if (data.id) {
+        const url = `${window.location.origin}/s/${data.id}`;
+        setShareUrl(url);
+        await navigator.clipboard.writeText(url);
+        setShareState("shared");
+        setTimeout(() => setShareState("idle"), 3000);
+      } else {
+        setShareState("idle");
+      }
+    } catch {
+      setShareState("idle");
+    }
   };
 
   // On format-specific SEO pages, show only that format's logo; on homepage show all
@@ -266,6 +379,9 @@ export function ResultPreview({ blocks, formatSlug, onReset }: ResultPreviewProp
           </Button>
         </div>
         {pdfViewerBody}
+        {pdfState === "done" && (
+          <FeedbackWidget blocks={blocks} sourceHtml={sourceHtml} inputSource={inputSource} />
+        )}
       </div>
     );
   }
@@ -336,50 +452,67 @@ export function ResultPreview({ blocks, formatSlug, onReset }: ResultPreviewProp
                 Download PDF
               </Button>
             </div>
+          ) : !formatSlug ? (
+            <div className="flex gap-2">
+              {FORMAT_LOGOS.map(({ key, logo }) => (
+                <Button
+                  key={key}
+                  variant={copiedFormat === key ? "success" : "outline"}
+                  size="lg"
+                  className="flex-1 gap-2 h-11"
+                  onClick={() => handleCopyFormat(key)}
+                >
+                  {copiedFormat === key ? (
+                    <>
+                      <CheckIcon />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <LogoIcon src={logo} alt="" size={18} shape="bare" />
+                      {FORMATS[key].label === "Markdown" ? "Obsidian" : FORMATS[key].label}
+                    </>
+                  )}
+                </Button>
+              ))}
+            </div>
           ) : (
             <div className="flex items-center gap-2">
             <Button
-              variant={copied ? "success" : "default"}
+              variant={
+                copyFeedback?.status === "success" ? "success"
+                  : copyFeedback?.status === "failed" ? "destructive"
+                  : "default"
+              }
               size="lg"
               className="flex-1 gap-2.5 h-11 text-base"
               onClick={handleCopy}
               aria-live="polite"
             >
-              {copied ? (
+              {copyFeedback?.status === "success" ? (
                 <>
                   <CheckIcon />
-                  {formatSlug && PASTE_DESTINATIONS[formatSlug]
-                    ? `Now paste in ${PASTE_DESTINATIONS[formatSlug]}`
-                    : "Now paste Anywhere"}
+                  Now paste in {PASTE_DESTINATIONS[formatSlug]}
+                </>
+              ) : copyFeedback?.status === "partial" ? (
+                <>
+                  <WarnIcon />
+                  {copyFeedback.message}
+                </>
+              ) : copyFeedback?.status === "failed" ? (
+                <>
+                  <XIcon />
+                  Copy failed. Nothing was copied.
                 </>
               ) : (
                 <>
-                  {orderedLogos.length === 1 ? (
-                    <>
-                      <LogoIcon
-                        src={orderedLogos[0].logo}
-                        alt=""
-                        size={20}
-                        shape="bare"
-                      />
-                      Copy to {FORMATS[orderedLogos[0].key].label}
-                    </>
-                  ) : (
-                    <>
-                      Copy Anywhere
-                      <span className="flex items-center -space-x-1">
-                        {orderedLogos.map(({ key, logo }) => (
-                          <LogoIcon
-                            key={key}
-                            src={logo}
-                            alt=""
-                            size={20}
-                            shape="bare"
-                          />
-                        ))}
-                      </span>
-                    </>
-                  )}
+                  <LogoIcon
+                    src={orderedLogos[0].logo}
+                    alt=""
+                    size={20}
+                    shape="bare"
+                  />
+                  Copy to {FORMATS[orderedLogos[0].key].label}
                 </>
               )}
             </Button>
@@ -401,6 +534,33 @@ export function ResultPreview({ blocks, formatSlug, onReset }: ResultPreviewProp
           <NotionSeshPreview blocks={blocks} />
         </PdfPreviewShell>
       )}
+      <div className="flex items-center justify-between px-5">
+        <FeedbackWidget blocks={blocks} sourceHtml={sourceHtml} inputSource={inputSource} />
+        {!showingPdf && (
+          <button
+            onClick={handleShare}
+            disabled={shareState === "sharing"}
+            className="flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+          >
+            {shareState === "shared" ? (
+              <>
+                <CheckIcon />
+                Link copied!
+              </>
+            ) : shareState === "sharing" ? (
+              <>
+                <SpinnerIcon size={14} />
+                Sharing...
+              </>
+            ) : (
+              <>
+                <ShareIcon />
+                Share with formatting
+              </>
+            )}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

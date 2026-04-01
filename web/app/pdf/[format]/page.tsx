@@ -9,6 +9,10 @@ import {
   isValidFormat,
   type FormatSlug,
 } from "@/lib/config/models";
+import { PageFAQ, type FAQItem } from "@/components/PageFAQ";
+import { BreadcrumbSchema } from "@/components/BreadcrumbSchema";
+import { HowToSchema } from "@/components/HowToSchema";
+import { RelatedConverters } from "@/components/RelatedConverters";
 import type { Metadata } from "next";
 
 type Props = { params: Promise<{ format: string }> };
@@ -47,8 +51,36 @@ export default async function PdfFormatPage({ params }: Props) {
 
   const f = FORMATS[formatSlug];
 
+  const faqItems: FAQItem[] = [
+    {
+      q: `How does PDF to ${f.label} work?`,
+      a: `Drop your PDF file and each page is OCR'd using AI. The recognized text, math equations, tables, and code are then converted to ${f.label} format that you can copy and paste.`,
+    },
+    {
+      q: "How accurate is the OCR for equations?",
+      a: "Very accurate for printed and typed equations. Handwritten math may have lower accuracy. You can check the preview before copying to verify the result.",
+    },
+    {
+      q: "What's the page limit for PDFs?",
+      a: "Up to 10 pages per PDF, with a daily limit of 2 PDF conversions for free users. The limit resets daily.",
+    },
+  ];
+
   return (
     <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-6">
+      <BreadcrumbSchema items={[
+        { name: "Tools", href: "/tools" },
+        { name: `PDF to ${f.label}`, href: `/pdf/${formatSlug}` },
+      ]} />
+      <HowToSchema
+        name={`How to convert a PDF to ${f.label}`}
+        description={`Upload any PDF and convert it to ${f.label} with OCR-powered accuracy. Math, code, tables, and formatting preserved.`}
+        steps={[
+          { name: "Drop or select a PDF", text: "Drop a PDF file onto the converter or click to select one (up to 10 pages)." },
+          { name: "Wait for OCR", text: "Each page is OCR-processed to extract text, math, tables, and code." },
+          { name: `Copy to ${f.label}`, text: `Click 'Copy to ${f.label}' and paste the result into ${f.label}.` },
+        ]}
+      />
       {/* Header */}
       <header className="flex flex-col items-center text-center gap-3">
         <div className="flex items-center gap-3">
@@ -132,6 +164,10 @@ export default async function PdfFormatPage({ params }: Props) {
           </p>
         </section>
       </article>
+
+      <RelatedConverters formatSlug={formatSlug} currentSource={{ type: "pdf" }} />
+
+      <PageFAQ items={faqItems} />
 
       {/* Extension CTA */}
       <section className="text-center py-6 border-t border-border mt-2">

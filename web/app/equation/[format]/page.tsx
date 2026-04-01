@@ -3,6 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { LogoIcon } from "@/components/LogoIcon";
 import { EquationEditor } from "@/components/EquationEditor";
 import { FORMATS, CWS_LISTING_URL, SITE_URL, type FormatSlug } from "@/lib/config/models";
+import { BreadcrumbSchema } from "@/components/BreadcrumbSchema";
+import { RelatedConverters } from "@/components/RelatedConverters";
 import type { Metadata } from "next";
 
 /* URL slug → internal format slug (Obsidian URLs use "obsidian" but format is "markdown") */
@@ -50,6 +52,10 @@ export default async function EquationFormatPage({ params }: Props) {
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-6">
+      <BreadcrumbSchema items={[
+        { name: "Equation Editor", href: "/equation" },
+        { name: entry.label, href: `/equation/${entry.urlSlug}` },
+      ]} />
       {/* Header */}
       <header className="flex flex-col items-center text-center gap-3">
         <div className="flex items-center gap-3">
@@ -125,6 +131,8 @@ export default async function EquationFormatPage({ params }: Props) {
           </p>
         </section>
       </article>
+
+      <RelatedConverters formatSlug={entry.formatSlug} currentSource={{ type: "equation" }} />
 
       {/* Extension CTA */}
       <section className="text-center py-6 border-t border-border mt-2">

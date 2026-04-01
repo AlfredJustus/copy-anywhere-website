@@ -50,7 +50,7 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
         <p className="text-sm text-muted-foreground">
-          Last updated: 31 March 2026
+          Last updated: 1 April 2026
         </p>
         <p className="text-[15px] leading-relaxed text-muted-foreground mt-1">
           Copy Anywhere converts content between formats for Notion, Markdown,
@@ -216,6 +216,33 @@ export default function PrivacyPage() {
               serves the PDF.js library for in-browser PDF rendering.
             </Bullet>
           </ul>
+        </Section>
+
+        <hr className="border-border opacity-60" />
+
+        <Section title="Feedback">
+          <p className="text-[15px] leading-relaxed text-muted-foreground">
+            After converting content, you may optionally rate the result using
+            the thumbs-up or thumbs-down buttons.
+          </p>
+          <ul className="flex flex-col gap-2.5 text-[15px] leading-relaxed">
+            <Bullet label="Thumbs up">
+              we log the rating, the page URL, and your browser&apos;s user agent
+              string. No content data is collected.
+            </Bullet>
+            <Bullet label="Thumbs down">
+              if you submit negative feedback, we collect the rating, your
+              optional comment, the converted content (the block data produced by
+              the conversion), and the source input you pasted or uploaded. This
+              allows us to reproduce and fix the issue.
+            </Bullet>
+          </ul>
+          <p className="text-[15px] leading-relaxed text-muted-foreground">
+            Feedback is submitted only when you explicitly click the feedback
+            buttons — it is never collected passively. Feedback data is stored in
+            our database (Supabase) and used solely for improving conversion
+            quality.
+          </p>
         </Section>
 
         <hr className="border-border opacity-60" />

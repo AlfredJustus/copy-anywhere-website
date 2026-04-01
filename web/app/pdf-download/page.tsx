@@ -5,6 +5,28 @@ import { LogoIcon } from "@/components/LogoIcon";
 import { UniversalTool } from "@/components/UniversalTool";
 import { MODELS, FORMATS, CWS_LISTING_URL } from "@/lib/config/models";
 import { Badge } from "@/components/ui/badge";
+import { PageFAQ } from "@/components/PageFAQ";
+import { BreadcrumbSchema } from "@/components/BreadcrumbSchema";
+import { HowToSchema } from "@/components/HowToSchema";
+
+const FAQ_ITEMS = [
+  {
+    q: "What does the PDF look like?",
+    a: "Publication-quality output rendered with LaTeX. Math equations are typeset natively, code blocks get syntax highlighting, and tables are properly formatted with borders and alignment.",
+  },
+  {
+    q: "Can I customize the PDF title?",
+    a: "Yes. The title field is editable before download. It defaults to the first heading in your content.",
+  },
+  {
+    q: "Is there a limit on how many PDFs I can generate?",
+    a: "There's no hard limit on PDF exports. Generate as many as you need.",
+  },
+  {
+    q: "Does code get syntax highlighting in the PDF?",
+    a: "Yes. Code blocks include syntax highlighting based on the detected or specified programming language.",
+  },
+];
 
 const f = FORMATS.pdf;
 const formatSlug = "pdf";
@@ -22,6 +44,16 @@ export const metadata: Metadata = {
 export default function PdfDownloadPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-6">
+      <BreadcrumbSchema items={[{ name: "Save as PDF", href: "/pdf-download" }]} />
+      <HowToSchema
+        name="How to save any content as a beautifully formatted PDF"
+        description="Convert any content into a publication-quality PDF with LaTeX-rendered math, syntax-highlighted code, and proper tables."
+        steps={[
+          { name: "Copy or drop your content", text: "Paste from any website or AI chat, or drop a PDF or image file." },
+          { name: "Review the preview", text: "Copy Anywhere generates a LaTeX-compiled PDF preview with your content." },
+          { name: "Download", text: "Click 'Download PDF' to save your beautifully formatted document." },
+        ]}
+      />
       <header className="flex flex-col items-center text-center gap-3">
         <LogoIcon src={f.logo} alt={f.label} size={48} shape="rounded" />
         <h1 className="page-title text-3xl">
@@ -131,6 +163,8 @@ export default function PdfDownloadPage() {
           </p>
         </section>
       </article>
+
+      <PageFAQ items={FAQ_ITEMS} />
 
       <section className="text-center py-6 border-t border-border mt-2">
         <p className="text-base font-semibold text-foreground">

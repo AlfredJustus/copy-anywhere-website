@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { LogoIcon } from "@/components/LogoIcon";
 import { FORMATS, CWS_LISTING_URL } from "@/lib/config/models";
+import { BreadcrumbSchema } from "@/components/BreadcrumbSchema";
 
 const FORMAT_PAGES: { slug: string; route: string; label: string; description: string }[] = [
   { slug: "notion", route: "/notion", label: "Notion", description: "Paste as native Notion blocks — math, code, tables, and rich text preserved." },
@@ -27,6 +28,7 @@ export const metadata: Metadata = {
 export default function ToolsPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-8">
+      <BreadcrumbSchema items={[{ name: "Tools", href: "/tools" }]} />
       {/* Header */}
       <section className="pb-2">
         <h1 className="page-title text-3xl">Browse All Converters</h1>

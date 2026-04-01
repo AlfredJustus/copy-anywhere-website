@@ -3,9 +3,30 @@ import Link from "next/link";
 import Image from "next/image";
 import { LogoIcon } from "@/components/LogoIcon";
 import { UniversalTool } from "@/components/UniversalTool";
-import { EquationEditor } from "@/components/EquationEditor";
 import { MODELS, FORMATS, CWS_LISTING_URL } from "@/lib/config/models";
 import { Badge } from "@/components/ui/badge";
+import { PageFAQ } from "@/components/PageFAQ";
+import { BreadcrumbSchema } from "@/components/BreadcrumbSchema";
+import { HowToSchema } from "@/components/HowToSchema";
+
+const FAQ_ITEMS = [
+  {
+    q: "How do I get properly formatted Markdown from a website?",
+    a: "Paste or drop content into Copy Anywhere, then copy the Markdown output. Headings, lists, code blocks, and LaTeX equations are all preserved in clean Markdown syntax.",
+  },
+  {
+    q: "Are LaTeX equations preserved in the Markdown output?",
+    a: "Yes. Inline equations use $...$ and block equations use $$...$$, which Obsidian and most Markdown renderers display natively.",
+  },
+  {
+    q: "Can I convert a PDF to Markdown?",
+    a: "Yes. Drop a PDF file and it's OCR'd into clean Markdown with equations, tables, and code blocks intact.",
+  },
+  {
+    q: "Does it handle nested lists and complex tables?",
+    a: "Yes. Lists are preserved up to 3 levels of nesting, and tables are converted to standard Markdown pipe syntax with header rows.",
+  },
+];
 
 const f = FORMATS.markdown;
 const formatSlug = "markdown";
@@ -24,6 +45,17 @@ export const metadata: Metadata = {
 export default function ObsidianPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-6">
+      <BreadcrumbSchema items={[{ name: "Obsidian", href: "/obsidian" }]} />
+      <HowToSchema
+        name="How to paste anything into Obsidian with formatting"
+        description="Convert any content into clean Markdown with math, code, and tables preserved."
+        steps={[
+          { name: "Copy your content", text: "Select and copy content from any website, AI chat, PDF, or image." },
+          { name: "Paste into Copy Anywhere", text: "Paste or drop your content into the converter on this page." },
+          { name: "Copy the Markdown", text: "Click the copy button to copy the formatted Markdown output." },
+          { name: "Paste into Obsidian", text: "Press Cmd+V (or Ctrl+V) in Obsidian. Your content appears with all formatting intact." },
+        ]}
+      />
       <header className="flex flex-col items-center text-center gap-3">
         <LogoIcon src={f.logo} alt="Obsidian" size={48} shape="rounded" />
         <h1 className="page-title text-3xl">
@@ -106,16 +138,7 @@ export default function ObsidianPage() {
         </div>
       </section>
 
-      {/* Equation Editor */}
-      <section className="flex flex-col gap-3 mt-4">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground px-1">
-          Equation Editor
-        </h2>
-        <p className="text-sm text-muted-foreground px-1">
-          Type math visually and copy equations directly to Obsidian.
-        </p>
-        <EquationEditor formatSlug={formatSlug} />
-      </section>
+      <PageFAQ items={FAQ_ITEMS} />
 
       <section className="text-center py-6 border-t border-border mt-2">
         <p className="text-base font-semibold text-foreground">

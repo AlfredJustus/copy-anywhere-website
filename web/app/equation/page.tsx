@@ -2,6 +2,24 @@ import type { Metadata } from "next";
 import { Badge } from "@/components/ui/badge";
 import { EquationEditor } from "@/components/EquationEditor";
 import { CWS_LISTING_URL, SITE_URL } from "@/lib/config/models";
+import { PageFAQ } from "@/components/PageFAQ";
+import { BreadcrumbSchema } from "@/components/BreadcrumbSchema";
+import { HowToSchema } from "@/components/HowToSchema";
+
+const FAQ_ITEMS = [
+  {
+    q: "How do I type an equation?",
+    a: "Click the equation field and start typing. Use standard LaTeX commands or the visual keyboard to insert special symbols. The equation renders in real-time as you type.",
+  },
+  {
+    q: "Can I copy the equation to Notion?",
+    a: "Yes. Click \"Copy to Notion\" and paste directly into Notion. It becomes a native Notion equation block that renders with KaTeX.",
+  },
+  {
+    q: "What LaTeX commands are supported?",
+    a: "All standard LaTeX math commands including fractions, integrals, matrices, summations, Greek letters, roots, and more. The editor is powered by MathLive.",
+  },
+];
 
 export const metadata: Metadata = {
   title: "Visual LaTeX Equation Editor – Copy Anywhere",
@@ -18,6 +36,16 @@ export const metadata: Metadata = {
 export default function EquationPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-6">
+      <BreadcrumbSchema items={[{ name: "Equation Editor", href: "/equation" }]} />
+      <HowToSchema
+        name="How to create and copy LaTeX equations"
+        description="Type math visually and copy equations to Notion, Obsidian, or Google Docs with one click."
+        steps={[
+          { name: "Type your equation", text: "Click the equation field and start typing. Use LaTeX commands or the visual keyboard." },
+          { name: "Preview in real-time", text: "Your equation renders live as you type." },
+          { name: "Copy to your destination", text: "Click the copy button for your target format — Notion, Obsidian, or Google Docs." },
+        ]}
+      />
       {/* Header */}
       <header className="flex flex-col items-center text-center gap-3">
         <div className="size-10 flex items-center justify-center rounded-lg bg-secondary text-primary [&_svg]:size-6">
@@ -85,6 +113,8 @@ export default function EquationPage() {
           </p>
         </section>
       </article>
+
+      <PageFAQ items={FAQ_ITEMS} />
 
       {/* Extension CTA */}
       <section className="text-center py-6 border-t border-border mt-2">

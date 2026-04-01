@@ -9,6 +9,10 @@ import {
   isValidModel, isValidFormat,
   type ModelSlug, type FormatSlug,
 } from "@/lib/config/models";
+import { PageFAQ, type FAQItem } from "@/components/PageFAQ";
+import { BreadcrumbSchema } from "@/components/BreadcrumbSchema";
+import { HowToSchema } from "@/components/HowToSchema";
+import { RelatedConverters } from "@/components/RelatedConverters";
 import type { Metadata } from "next";
 
 type Props = { params: Promise<{ model: string; format: string }> };
@@ -56,8 +60,46 @@ export default async function ModelFormatPage({ params }: Props) {
   const m = MODELS[modelSlug];
   const f = FORMATS[formatSlug];
 
+  const faqItems: FAQItem[] = [
+    {
+      q: `How do I copy a ${m.label} conversation to ${f.label}?`,
+      a: `Open your ${m.label} conversation, select the content you want (or press Cmd+A to select all), then press Cmd+C. Paste it on this page, and Copy Anywhere will convert it. ${formatSlug === "pdf" ? "Download the formatted PDF." : `Click "Copy to ${f.label}" and paste into ${f.label}.`}`,
+    },
+    {
+      q: `Does it preserve ${m.label}'s code blocks and math?`,
+      a: `Yes. Code blocks retain their language tags and syntax highlighting. LaTeX equations are converted to ${formatSlug === "pdf" ? "native LaTeX for professional typesetting" : `${f.label}'s native math format`}.`,
+    },
+    {
+      q: `Can I copy just part of a ${m.label} conversation?`,
+      a: `Yes. Select the specific portion you want in ${m.label}, copy it, and paste it here. Only the selected content is converted.`,
+    },
+  ];
+
+  const formatLabel = formatSlug === "pdf" ? "PDF" : f.label;
+  const howToSteps = formatSlug === "pdf"
+    ? [
+        { name: `Copy from ${m.label}`, text: `Open your ${m.label} conversation, select the content, and press Cmd+C (or Ctrl+C).` },
+        { name: "Paste into Copy Anywhere", text: "Paste your content into the converter on this page." },
+        { name: "Download PDF", text: "Click 'Download PDF' to save your beautifully formatted document." },
+      ]
+    : [
+        { name: `Copy from ${m.label}`, text: `Open your ${m.label} conversation, select the content, and press Cmd+C (or Ctrl+C).` },
+        { name: "Paste into Copy Anywhere", text: "Paste your content into the converter on this page." },
+        { name: `Copy to ${formatLabel}`, text: `Click 'Copy to ${formatLabel}' to copy the formatted content.` },
+        { name: `Paste into ${formatLabel}`, text: `Press Cmd+V (or Ctrl+V) in ${formatLabel}. Your content appears with all formatting intact.` },
+      ];
+
   return (
     <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-6">
+      <BreadcrumbSchema items={[
+        { name: "Tools", href: "/tools" },
+        { name: `${m.label} to ${formatLabel}`, href: `/convert/${modelSlug}/${formatSlug}` },
+      ]} />
+      <HowToSchema
+        name={`How to convert ${m.label} to ${formatLabel}`}
+        description={`Copy math, code, tables, and formatted text from ${m.label} and paste perfectly into ${formatLabel}.`}
+        steps={howToSteps}
+      />
       {/* Header */}
       <header className="flex flex-col items-center text-center gap-3">
         <div className="flex items-center gap-3">
@@ -139,6 +181,10 @@ export default async function ModelFormatPage({ params }: Props) {
           </p>
         </section>
       </article>
+
+      <RelatedConverters formatSlug={formatSlug} currentSource={{ type: "model", slug: modelSlug }} />
+
+      <PageFAQ items={faqItems} />
 
       {/* Extension CTA */}
       <section className="text-center py-6 border-t border-border mt-2">
