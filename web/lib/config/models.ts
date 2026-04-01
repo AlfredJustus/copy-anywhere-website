@@ -36,4 +36,4 @@ export function isValidFormat(slug: string): slug is FormatSlug {
 export const SITE_URL = "https://copy-anywhere.com";
 
 export const CWS_LISTING_URL =
-  "https://chromewebstore.google.com/detail/notionsesh/eilfiamdpkcphkpcaihiclafoecpmodn";
+  "https://chromewebstore.google.com/detail/copy-anywhere-math-code-t/mkicjobmipolpogeimbgdhikjbiilked";
