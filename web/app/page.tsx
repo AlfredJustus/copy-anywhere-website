@@ -58,7 +58,7 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-8">
+    <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-6 sm:gap-8">
       {showHero && (
         <>
           {/* Hero tagline */}

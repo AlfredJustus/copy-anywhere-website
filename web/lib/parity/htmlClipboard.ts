@@ -3,13 +3,11 @@
 // Adaptation: chrome.runtime.getURL replaced with CDN <script> loader for MathJax
 
 import {
-  RENDER_BUDGET_MS,
   RENDER_TIMEOUT_FLOOR_MS,
   BLOCK_EQ_MAX_WIDTH,
   INLINE_BASE_FONT_PX,
   clamp,
   timeoutPromise,
-  assertWithinBudget,
   isRichTextArray,
   normalizeTableCellRichText,
   scaleCssLength,
@@ -20,6 +18,9 @@ import {
   collectMathRequests,
   stripSvgMarkup,
 } from "./mathRender";
+
+/** Per-equation timeout — generous enough for complex LaTeX, catches true hangs. */
+const PER_EQUATION_TIMEOUT_MS = 10_000;
 
 const ROOT_STYLE =
   'font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:1em;line-height:1.45;color:#000;background:transparent;margin:0;padding:0';
@@ -60,16 +61,14 @@ const INLINE_TRIM_TOP_PX = 1;
 const INLINE_TRIM_SIDE_PX = 1;
 const INLINE_TRIM_BOTTOM_PX = 0;
 const INLINE_RASTER_SCALE = 1.6;
-const BLOCK_PAD_X = 14;
 const BLOCK_PAD_TOP = 4;
 const BLOCK_PAD_BOTTOM = 4;
 const BLOCK_RASTER_SCALE = 3.5;
-const BLOCK_EQ_RENDER_SCALE = 0.6;
+const BLOCK_EQ_CONTENT_SCALE = 0.8;
 const BLOCK_EQ_DOCS_TARGET_SCALE = 2;
-const BLOCK_EQ_SCALE = 0.4;
 const BLOCK_TRIM_TOP_PX = 4;
-const BLOCK_TRIM_SIDE_PX = 4;
 const BLOCK_TRIM_BOTTOM_PX = 4;
+const BLOCK_EQ_MAX_HEIGHT = 320;
 
 function escapeHtml(s: any): string {
   return String(s ?? "")
@@ -117,8 +116,6 @@ async function loadSvgRasterSource(
   svgMarkup: string,
   deadlineMs: number,
 ): Promise<any> {
-  assertWithinBudget(deadlineMs);
-
   const blob = new Blob([svgMarkup], { type: "image/svg+xml;charset=utf-8" });
 
   if (typeof createImageBitmap === "function") {
@@ -170,7 +167,6 @@ async function rasterizeSvgToCanvas(
   deadlineMs: number,
 ): Promise<any> {
   const source = await loadSvgRasterSource(svgMarkup, deadlineMs);
-  assertWithinBudget(deadlineMs);
 
   const {
     drawWidth,
@@ -309,12 +305,22 @@ function cropBlockMathCanvas(canvas: any): any {
   const bounds = getCanvasTrimBounds(ctx, canvas.width, canvas.height);
   if (!bounds) return canvas;
 
-  return cropCanvasWithBounds(canvas, bounds, {
-    top: BLOCK_TRIM_TOP_PX,
-    right: BLOCK_TRIM_SIDE_PX,
-    bottom: BLOCK_TRIM_BOTTOM_PX,
-    left: BLOCK_TRIM_SIDE_PX,
-  });
+  // Only trim vertically; preserve full canvas width for consistent sizing
+  return cropCanvasWithBounds(
+    canvas,
+    {
+      top: bounds.top,
+      bottom: bounds.bottom,
+      left: 0,
+      right: canvas.width - 1,
+    },
+    {
+      top: BLOCK_TRIM_TOP_PX,
+      bottom: BLOCK_TRIM_BOTTOM_PX,
+      left: 0,
+      right: 0,
+    },
+  );
 }
 
 async function canvasToDataUrl(canvas: any): Promise<string> {
@@ -363,8 +369,8 @@ function inlineMathStyleFromAsset(asset: any): string {
   ].join(";");
 }
 
-function blockMathStyleFromAsset(asset: any): string {
-  const logicalWidth = Math.max(
+function blockMathDims(asset: any): { width: number; height: number } {
+  const logicalW = Math.max(
     1,
     asset.logicalWidth ||
       asset.rasterWidth ||
@@ -372,11 +378,29 @@ function blockMathStyleFromAsset(asset: any): string {
       asset.displayWidth ||
       asset.contentWidth,
   );
-  const widthPx = Math.min(BLOCK_EQ_MAX_WIDTH, logicalWidth * BLOCK_EQ_SCALE);
+  const logicalH = Math.max(
+    1,
+    asset.logicalHeight ||
+      asset.rasterHeight ||
+      asset.height ||
+      asset.displayHeight ||
+      asset.contentHeight,
+  );
+  const aspectRatio = logicalH / logicalW;
+  let w = BLOCK_EQ_MAX_WIDTH;
+  let h = Math.round(w * aspectRatio);
+  if (h > BLOCK_EQ_MAX_HEIGHT) {
+    h = BLOCK_EQ_MAX_HEIGHT;
+    w = Math.round(h / aspectRatio);
+  }
+  return { width: w, height: h };
+}
 
+function blockMathStyleFromAsset(asset: any): string {
+  const { width } = blockMathDims(asset);
   return [
     "display:block",
-    `width:${Math.round(widthPx)}px`,
+    `width:${width}px`,
     "height:auto",
     "max-width:100%",
     "margin:0 auto",
@@ -385,25 +409,10 @@ function blockMathStyleFromAsset(asset: any): string {
 }
 
 function blockMathDimensionAttrsFromAsset(asset: any): string {
-  const logicalWidth = Math.max(
-    1,
-    asset.logicalWidth ||
-      asset.rasterWidth ||
-      asset.width ||
-      asset.displayWidth ||
-      asset.contentWidth,
-  );
-  const logicalHeight = Math.max(
-    1,
-    asset.logicalHeight ||
-      asset.rasterHeight ||
-      asset.height ||
-      asset.displayHeight ||
-      asset.contentHeight,
-  );
-  const width = Math.round(logicalWidth * BLOCK_EQ_DOCS_TARGET_SCALE);
-  const height = Math.round(logicalHeight * BLOCK_EQ_DOCS_TARGET_SCALE);
-  return ` width="${width}" height="${height}"`;
+  const { width, height } = blockMathDims(asset);
+  const targetWidth = Math.round(width * BLOCK_EQ_DOCS_TARGET_SCALE);
+  const targetHeight = Math.round(height * BLOCK_EQ_DOCS_TARGET_SCALE);
+  return ` width="${targetWidth}" height="${targetHeight}"`;
 }
 
 function getInlineMathFallback(latex: string): string {
@@ -418,11 +427,9 @@ async function renderMathToPngAsset(
   latex: string,
   displayMode: boolean,
   sanitizeLatex: (s: string) => string,
-  deadlineMs: number,
 ): Promise<any> {
-  assertWithinBudget(deadlineMs);
+  const deadlineMs = performance.now() + PER_EQUATION_TIMEOUT_MS;
   const MathJax = await ensureMathJaxSvg();
-  assertWithinBudget(deadlineMs);
 
   const host = document.createElement("div");
   host.style.position = "fixed";
@@ -477,12 +484,12 @@ async function renderMathToPngAsset(
 
     const displayScale = displayMode
       ? Math.min(1, BLOCK_EQ_MAX_WIDTH / Math.max(1, contentWidth)) *
-        BLOCK_EQ_RENDER_SCALE
+        BLOCK_EQ_CONTENT_SCALE
       : 1;
 
     const displayWidth = Math.max(1, Math.round(contentWidth * displayScale));
     const displayHeight = Math.max(1, Math.round(contentHeight * displayScale));
-    const padX = displayMode ? BLOCK_PAD_X : INLINE_PAD_X;
+    const padX = INLINE_PAD_X;
     const padTop = displayMode ? BLOCK_PAD_TOP : INLINE_PAD_TOP;
     const padBottom = displayMode ? BLOCK_PAD_BOTTOM : INLINE_PAD_BOTTOM;
     const rasterScale = displayMode ? BLOCK_RASTER_SCALE : INLINE_RASTER_SCALE;
@@ -500,7 +507,9 @@ async function renderMathToPngAsset(
     }
     const svgMarkup = new XMLSerializer().serializeToString(clonedSvg);
 
-    const rasterWidth = displayWidth + padX * 2;
+    const rasterWidth = displayMode
+      ? BLOCK_EQ_MAX_WIDTH
+      : displayWidth + padX * 2;
     const rasterHeight = displayHeight + padTop + padBottom;
     let dataUrl: string;
     let finalLogicalWidth = rasterWidth;
@@ -510,7 +519,6 @@ async function renderMathToPngAsset(
 
     if (!displayMode) {
       const source = await loadSvgRasterSource(svgMarkup, deadlineMs);
-      assertWithinBudget(deadlineMs);
       const inlineCanvas = document.createElement("canvas");
       inlineCanvas.width = Math.max(1, Math.ceil(rasterWidth * rasterScale));
       inlineCanvas.height = Math.max(1, Math.ceil(rasterHeight * rasterScale));
@@ -535,9 +543,9 @@ async function renderMathToPngAsset(
         {
           drawWidth: displayWidth,
           drawHeight: displayHeight,
-          canvasWidth: rasterWidth,
+          canvasWidth: BLOCK_EQ_MAX_WIDTH,
           canvasHeight: rasterHeight,
-          offsetX: padX,
+          offsetX: (BLOCK_EQ_MAX_WIDTH - displayWidth) / 2,
           offsetY: padTop,
           rasterScale,
         },
@@ -602,11 +610,9 @@ async function preRenderMathAssets(
     return { enabled: false, assets: new Map() };
   }
 
-  const deadlineMs = performance.now() + RENDER_BUDGET_MS;
   const assets = new Map<string, any>();
 
   for (const { latex, displayMode } of requests.values()) {
-    assertWithinBudget(deadlineMs);
     const renderLatex = getHtmlRenderLatex(latex, displayMode, sanitizeLatex);
     const key = `${displayMode ? "block" : "inline"}\0${renderLatex}`;
     if (assets.has(key)) continue;
@@ -614,7 +620,6 @@ async function preRenderMathAssets(
       renderLatex,
       displayMode,
       sanitizeLatex,
-      deadlineMs,
     );
     assets.set(key, asset);
   }

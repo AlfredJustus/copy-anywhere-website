@@ -9,14 +9,14 @@ export function SiteHeader() {
 
   const rightLink =
     pathname === "/"
-      ? { href: "/tools", label: "Browse all converters" }
+      ? { href: "/tools", label: "Browse all converters", mobileLabel: "Tools" }
       : pathname === "/tools"
         ? null
         : pathname === "/privacy" || pathname === "/terms"
-          ? { href: "/", label: "Back to app" }
+          ? { href: "/", label: "Back to app", mobileLabel: "Back" }
           : pathname === "/extension"
-            ? { href: "/", label: "Try the web app" }
-            : { href: "/tools", label: "All tools" };
+            ? { href: "/", label: "Try the web app", mobileLabel: "Web app" }
+            : { href: "/tools", label: "All tools", mobileLabel: "Tools" };
 
   const handleLogoClick = () => {
     if (pathname === "/") {
@@ -40,7 +40,7 @@ export function SiteHeader() {
             className="rounded-lg shadow-logo"
             priority
           />
-          <span className="font-serif text-lg font-semibold tracking-tight">
+          <span className="hidden sm:inline font-serif text-lg font-semibold tracking-tight">
             Copy Anywhere
           </span>
         </Link>
@@ -58,7 +58,8 @@ export function SiteHeader() {
               href={rightLink.href}
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              {rightLink.label}
+              <span className="sm:hidden">{rightLink.mobileLabel}</span>
+              <span className="hidden sm:inline">{rightLink.label}</span>
             </Link>
           )}
         </div>

@@ -21,7 +21,7 @@ export function CookieBanner() {
   return (
     <div className="fixed bottom-0 inset-x-0 z-50 flex justify-center p-4 pointer-events-none">
       <div className="pointer-events-auto animate-barSlideUp w-full max-w-2xl rounded-xl border border-border bg-card shadow-card-lg px-5 py-3.5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-        <p className="flex-1 min-w-[200px] text-muted-foreground">
+        <p className="flex-1 min-w-0 sm:min-w-[200px] text-muted-foreground">
           We use cookies for analytics.{" "}
           <a
             href="/privacy"

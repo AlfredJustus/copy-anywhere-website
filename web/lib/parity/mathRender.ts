@@ -7,7 +7,6 @@ import { parseRichText } from "./blockFactory";
 // ---- Constants ----
 export const MATHJAX_CDN_URL =
   "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg-full.js";
-export const RENDER_BUDGET_MS = 1000;
 export const RENDER_TIMEOUT_FLOOR_MS = 60;
 export const BLOCK_EQ_MAX_WIDTH = 520;
 export const INLINE_BASE_FONT_PX = 16;
@@ -24,11 +23,6 @@ export function timeoutPromise(ms: number, label: string): Promise<never> {
   });
 }
 
-export function assertWithinBudget(deadlineMs: number): void {
-  if (performance.now() > deadlineMs) {
-    throw new Error("math render budget exceeded");
-  }
-}
 
 export function isRichTextArray(value: any): boolean {
   return (

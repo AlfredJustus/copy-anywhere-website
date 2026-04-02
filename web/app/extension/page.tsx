@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 export default function ExtensionPage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16 flex flex-col gap-20">
+    <main className="mx-auto max-w-3xl px-6 py-10 sm:py-16 flex flex-col gap-12 sm:gap-20">
       <BreadcrumbSchema items={[{ name: "Chrome Extension", href: "/extension" }]} />
       {/* Hero */}
       <section className="flex flex-col items-center text-center gap-6">
@@ -38,7 +38,7 @@ export default function ExtensionPage() {
               </svg>
             </div>
             <div className="extension-type-card extension-type-table">
-              <svg viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg" fill="none" className="w-[62px] h-[44px]">
+              <svg viewBox="0 0 64 44" xmlns="http://www.w3.org/2000/svg" fill="none" className="w-[48px] sm:w-[62px] h-[34px] sm:h-[44px]">
                 <rect x="1.5" y="1.5" width="61" height="41" rx="10" fill="#FCFEFF" stroke="#A9BBCB" strokeWidth="2"/>
                 <path d="M6 16.5H58" stroke="#A9BBCB" strokeWidth="2" strokeLinecap="round"/>
                 <path d="M6 27.5H58" stroke="#A9BBCB" strokeWidth="2" strokeLinecap="round"/>
@@ -92,7 +92,7 @@ export default function ExtensionPage() {
       </section>
 
       {/* Install once */}
-      <section className="flex flex-col items-center text-center gap-6 border-t border-border pt-20">
+      <section className="flex flex-col items-center text-center gap-6 border-t border-border pt-12 sm:pt-20">
         <div className="flex items-center gap-1.5">
           <kbd className="inline-flex items-center justify-center h-11 min-w-[44px] px-3.5 rounded-xl bg-card border border-border border-b-[3px] text-lg font-extrabold shadow-sm">&#8984;</kbd>
           <span className="text-muted-foreground font-bold">/</span>
@@ -108,7 +108,7 @@ export default function ExtensionPage() {
       </section>
 
       {/* Capture */}
-      <section className="flex flex-col items-center text-center gap-6 border-t border-border pt-20">
+      <section className="flex flex-col items-center text-center gap-6 border-t border-border pt-12 sm:pt-20">
         <h2 className="page-title text-3xl sm:text-4xl">
           Capture images and PDFs.
         </h2>
@@ -140,7 +140,7 @@ export default function ExtensionPage() {
       </section>
 
       {/* AI chats */}
-      <section className="flex flex-col items-center text-center gap-6 border-t border-border pt-20">
+      <section className="flex flex-col items-center text-center gap-6 border-t border-border pt-12 sm:pt-20">
         <h2 className="page-title text-3xl sm:text-4xl">
           Works with AI chats too.
         </h2>
@@ -158,9 +158,9 @@ export default function ExtensionPage() {
           ].map(({ src, alt, invert }: { src: string; alt: string; invert?: boolean }) => (
             <div
               key={alt}
-              className="w-[120px] sm:w-[156px] h-[100px] sm:h-[132px] grid place-items-center rounded-3xl bg-card border border-border shadow-sm"
+              className="w-[90px] sm:w-[120px] md:w-[156px] h-[76px] sm:h-[100px] md:h-[132px] grid place-items-center rounded-3xl bg-card border border-border shadow-sm"
             >
-              <Image src={src} alt={alt} width={72} height={72} className={`w-14 sm:w-[72px] h-14 sm:h-[72px] object-contain${invert ? " dark:invert" : ""}`} />
+              <Image src={src} alt={alt} width={72} height={72} className={`w-10 sm:w-14 md:w-[72px] h-10 sm:h-14 md:h-[72px] object-contain${invert ? " dark:invert" : ""}`} />
             </div>
           ))}
         </div>

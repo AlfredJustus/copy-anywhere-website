@@ -614,6 +614,19 @@ a { color: inherit; }
 @media (max-width: 640px) {
   .paste-zone--idle, .drop-zone--idle, .drop-zone--dragover { min-height: 200px; padding: 40px 20px; }
   .universal-zone--idle, .universal-zone--dragover { min-height: 260px; padding: 48px 20px; }
+
+  /* Extension page */
+  .extension-hero-tile { padding: 20px 16px; }
+  .extension-type-math { width: 90px; height: 50px; }
+  .extension-type-code { width: 72px; height: 50px; }
+  .extension-type-table { width: 74px; height: 52px; }
+  .extension-editor-chip { padding: 5px 9px; font-size: 11px; }
+  .extension-feature-pill { padding: 10px 14px; }
+
+  /* PDF / equation */
+  .pdf-progress-wrap { max-width: 100%; }
+  .equation-editor-wrap math-field { padding: 12px 14px; }
+
 }
 
 @theme {
@@ -646,13 +659,9 @@ a { color: inherit; }
   --color-secondary-foreground: var(--ink);
   --color-destructive: var(--error);
   --color-success: var(--success);
-  --radius-sm: calc(0.625rem * 0.6);
   --radius-md: calc(0.625rem * 0.8);
   --radius-lg: 0.625rem;
   --radius-xl: calc(0.625rem * 1.4);
-  --radius-2xl: calc(0.625rem * 1.8);
-  --radius-3xl: calc(0.625rem * 2.2);
-  --radius-4xl: calc(0.625rem * 2.6);
 }
 
 /* ── Shared page titles ── */

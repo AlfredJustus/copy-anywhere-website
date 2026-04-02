@@ -1,6 +1,6 @@
 import { SITE_URL } from "@/lib/config/models";
 
-export interface BreadcrumbItem {
+interface BreadcrumbItem {
   name: string;
   href: string;
 }

@@ -1,162 +1,47 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import Image from "next/image";
-import { LogoIcon } from "@/components/LogoIcon";
-import { UniversalTool } from "@/components/UniversalTool";
-import { MODELS, FORMATS, CWS_LISTING_URL } from "@/lib/config/models";
-import { Badge } from "@/components/ui/badge";
-import { PageFAQ } from "@/components/PageFAQ";
-import { BreadcrumbSchema } from "@/components/BreadcrumbSchema";
-import { HowToSchema } from "@/components/HowToSchema";
-
-const FAQ_ITEMS = [
-  {
-    q: "How do I get properly formatted Markdown from a website?",
-    a: "Paste or drop content into Copy Anywhere, then copy the Markdown output. Headings, lists, code blocks, and LaTeX equations are all preserved in clean Markdown syntax.",
-  },
-  {
-    q: "Are LaTeX equations preserved in the Markdown output?",
-    a: "Yes. Inline equations use $...$ and block equations use $$...$$, which Obsidian and most Markdown renderers display natively.",
-  },
-  {
-    q: "Can I convert a PDF to Markdown?",
-    a: "Yes. Drop a PDF file and it's OCR'd into clean Markdown with equations, tables, and code blocks intact.",
-  },
-  {
-    q: "Does it handle nested lists and complex tables?",
-    a: "Yes. Lists are preserved up to 3 levels of nesting, and tables are converted to standard Markdown pipe syntax with header rows.",
-  },
-];
+import { FORMATS, buildFormatMetadata } from "@/lib/config/models";
+import { FormatLandingPage } from "@/components/FormatLandingPage";
 
 const f = FORMATS.markdown;
-const formatSlug = "markdown";
-const converterBadges = ["Math & LaTeX", "Code blocks", "Tables", "Rich text", "Nested lists"];
 
-export const metadata: Metadata = {
-  title: "Paste Anything into Obsidian – Copy Anywhere",
-  description: `Paste from any website, drop a PDF, or drop an image. Get ${f.seo} with math, code, and tables preserved.`,
-  alternates: { canonical: "/obsidian" },
-  openGraph: {
-    title: "Paste Anything into Obsidian – Copy Anywhere",
-    description: `Paste from any website, drop a PDF, or drop an image. Get ${f.seo} with math, code, and tables preserved.`,
-  },
-};
+export const metadata: Metadata = buildFormatMetadata("Obsidian", f.seo, "/obsidian");
 
 export default function ObsidianPage() {
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10 flex flex-col gap-6">
-      <BreadcrumbSchema items={[{ name: "Obsidian", href: "/obsidian" }]} />
-      <HowToSchema
-        name="How to paste anything into Obsidian with formatting"
-        description="Convert any content into clean Markdown with math, code, and tables preserved."
-        steps={[
+    <FormatLandingPage
+      formatSlug="markdown"
+      displayName="Obsidian"
+      logo={f.logo}
+      canonicalPath="/obsidian"
+      howTo={{
+        name: "How to paste anything into Obsidian with formatting",
+        description: "Convert any content into clean Markdown with math, code, and tables preserved.",
+        steps: [
           { name: "Copy your content", text: "Select and copy content from any website, AI chat, PDF, or image." },
           { name: "Paste into Copy Anywhere", text: "Paste or drop your content into the converter on this page." },
           { name: "Copy the Markdown", text: "Click the copy button to copy the formatted Markdown output." },
           { name: "Paste into Obsidian", text: "Press Cmd+V (or Ctrl+V) in Obsidian. Your content appears with all formatting intact." },
-        ]}
-      />
-      <header className="flex flex-col items-center text-center gap-3">
-        <LogoIcon src={f.logo} alt="Obsidian" size={48} shape="rounded" />
-        <h1 className="page-title text-3xl">
-          Paste Anything into Obsidian
-        </h1>
-        <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
-          Paste from any website, drop a PDF, or drop an image. Math, code, and tables land perfectly as clean Markdown.
-        </p>
-      </header>
-
-      <UniversalTool formatSlug={formatSlug} />
-
-      {/* Specific converters */}
-      <section className="flex flex-col gap-3 mt-4">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground px-1">
-          All Obsidian converters
-        </h2>
-        <div className="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-2">
-          {Object.entries(MODELS).map(([modelSlug, model]) => (
-            <Link
-              key={modelSlug}
-              href={`/convert/${modelSlug}/${formatSlug}`}
-              className="no-underline text-inherit flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-secondary/60 transition-colors group"
-            >
-              <LogoIcon src={model.logo} alt="" size={20} shape="bare" />
-              <span className="text-sm font-medium">{model.label} to Obsidian</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
-              </svg>
-            </Link>
-          ))}
-          <div className="border-t border-border mt-1 pt-1">
-            <Link
-              href={`/pdf/${formatSlug}`}
-              className="no-underline text-inherit flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-secondary/60 transition-colors group"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-primary">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-              </svg>
-              <span className="text-sm font-medium">PDF to Obsidian</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
-              </svg>
-            </Link>
-            <Link
-              href={`/image/${formatSlug}`}
-              className="no-underline text-inherit flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-secondary/60 transition-colors group"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-primary">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-              <span className="text-sm font-medium">Image to Obsidian</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
-              </svg>
-            </Link>
-            <Link
-              href="/equation/obsidian"
-              className="no-underline text-inherit flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-secondary/60 transition-colors group"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-primary">
-                <path d="M18 7V4H6l6 8-6 8h12v-3" />
-              </svg>
-              <span className="text-sm font-medium">Equation to Obsidian</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                <path d="M5 12h14" /><path d="M12 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-1.5 mt-1 px-1">
-          {converterBadges.map((b) => (
-            <Badge key={b} variant="secondary">{b}</Badge>
-          ))}
-        </div>
-      </section>
-
-      <PageFAQ items={FAQ_ITEMS} />
-
-      <section className="text-center py-6 border-t border-border mt-2">
-        <p className="text-base font-semibold text-foreground">
-          Want this built into your browser?
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Copy from any website. Paste into Obsidian. Already formatted.
-        </p>
-        <a
-          href={CWS_LISTING_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 mt-4 px-6 py-3 rounded-lg bg-primary text-primary-foreground text-sm font-semibold transition-opacity hover:opacity-90"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
-          Get the Chrome Extension
-        </a>
-      </section>
-    </main>
+        ],
+      }}
+      headerDescription="Paste from any website, drop a PDF, or drop an image. Math, code, and tables land perfectly as clean Markdown."
+      faqItems={[
+        {
+          q: "How do I get properly formatted Markdown from a website?",
+          a: "Paste or drop content into Copy Anywhere, then copy the Markdown output. Headings, lists, code blocks, and LaTeX equations are all preserved in clean Markdown syntax.",
+        },
+        {
+          q: "Are LaTeX equations preserved in the Markdown output?",
+          a: "Yes. Inline equations use $...$ and block equations use $$...$$, which Obsidian and most Markdown renderers display natively.",
+        },
+        {
+          q: "Can I convert a PDF to Markdown?",
+          a: "Yes. Drop a PDF file and it's OCR'd into clean Markdown with equations, tables, and code blocks intact.",
+        },
+        {
+          q: "Does it handle nested lists and complex tables?",
+          a: "Yes. Lists are preserved up to 3 levels of nesting, and tables are converted to standard Markdown pipe syntax with header rows.",
+        },
+      ]}
+    />
   );
 }

@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { BlockFactory } from "@/lib/parity/blockFactory";
 import { buildNotionPayload, blocksToMarkdown, getBlockData } from "@/lib/parity/serialize";
 import { buildClipboardHtmlFromBlocks } from "@/lib/parity/htmlClipboard";
-import { FORMATS, type FormatSlug } from "@/lib/config/models";
+import { FORMATS, PASTE_DESTINATIONS, type FormatSlug } from "@/lib/config/models";
+import { CheckIcon } from "@/components/ui/icons";
 
 const sanitizeLatex = (s: string) => s;
 
@@ -19,15 +20,6 @@ const FORMAT_LOGOS: { key: FormatSlug; logo: string }[] = [
   { key: "google-docs", logo: FORMATS["google-docs"].logo },
 ];
 
-const PASTE_DESTINATIONS: Partial<Record<FormatSlug, string>> = {
-  notion: "Notion",
-  markdown: "Obsidian",
-  "google-docs": "Google Docs",
-};
-
-const CheckIcon = () => (
-  <svg className="animate-checkPop" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-);
 
 interface EquationEditorProps {
   formatSlug?: FormatSlug;
@@ -132,7 +124,7 @@ export function EquationEditor({ formatSlug }: EquationEditorProps) {
       </div>
 
       {/* Copy buttons */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
         {/* Copy LaTeX */}
         <Button
           variant={copiedLatex ? "success" : "default"}

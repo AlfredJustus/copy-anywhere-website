@@ -9,6 +9,7 @@ import { ocrImage, checkQuota, RateLimitError } from "@/lib/ocr";
 import { type FormatSlug } from "@/lib/config/models";
 import { Button } from "@/components/ui/button";
 import { SquigglyProgress } from "@/components/SquigglyProgress";
+import { useDropZone } from "@/hooks/useDropZone";
 
 type Phase = "idle" | "processing" | "ready" | "error" | "rate-limited";
 
@@ -23,10 +24,7 @@ export function PdfConverterTool({ formatSlug = "notion" }: PdfConverterToolProp
   const [rasterProgress, setRasterProgress] = useState({ current: 0, total: 0 });
   const [fileName, setFileName] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [isDragOver, setIsDragOver] = useState(false);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const dragCounter = useRef(0);
 
   const handleFile = useCallback(async (file: File) => {
     setBlocks([]);
@@ -127,34 +125,10 @@ export function PdfConverterTool({ formatSlug = "notion" }: PdfConverterToolProp
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const onDragEnter = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter.current += 1;
-    if (e.dataTransfer.types.includes("Files")) setIsDragOver(true);
-  }, []);
-
-  const onDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter.current -= 1;
-    if (dragCounter.current === 0) setIsDragOver(false);
-  }, []);
-
-  const onDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const onDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter.current = 0;
-    setIsDragOver(false);
-
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type === "application/pdf") handleFile(file);
-  }, [handleFile]);
+  const { isDragOver, dragHandlers } = useDropZone({
+    accept: (f) => f.type === "application/pdf",
+    onDrop: handleFile,
+  });
 
   const onFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -176,10 +150,10 @@ export function PdfConverterTool({ formatSlug = "notion" }: PdfConverterToolProp
       <div
         className={dropZoneClass}
         onClick={() => (phase === "idle" || phase === "error") && fileInputRef.current?.click()}
-        onDragEnter={phase === "idle" || phase === "error" ? onDragEnter : undefined}
-        onDragLeave={phase === "idle" || phase === "error" ? onDragLeave : undefined}
-        onDragOver={phase === "idle" || phase === "error" ? onDragOver : undefined}
-        onDrop={phase === "idle" || phase === "error" ? onDrop : undefined}
+        onDragEnter={phase === "idle" || phase === "error" ? dragHandlers.onDragEnter : undefined}
+        onDragLeave={phase === "idle" || phase === "error" ? dragHandlers.onDragLeave : undefined}
+        onDragOver={phase === "idle" || phase === "error" ? dragHandlers.onDragOver : undefined}
+        onDrop={phase === "idle" || phase === "error" ? dragHandlers.onDrop : undefined}
       >
         <input
           ref={fileInputRef}

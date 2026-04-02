@@ -33,6 +33,23 @@ export function isValidFormat(slug: string): slug is FormatSlug {
   return slug in FORMATS;
 }
 
+export const PASTE_DESTINATIONS: Partial<Record<FormatSlug, string>> = {
+  notion: "Notion",
+  markdown: "Obsidian",
+  "google-docs": "Google Docs",
+};
+
+export function buildFormatMetadata(displayName: string, seo: string, canonical: string) {
+  const title = `Paste Anything into ${displayName} – Copy Anywhere`;
+  const description = `Paste from any website, drop a PDF, or drop an image. Get clean ${seo} with math, code, and tables preserved.`;
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: { title, description },
+  };
+}
+
 export const SITE_URL = "https://copy-anywhere.com";
 
 export const CWS_LISTING_URL =

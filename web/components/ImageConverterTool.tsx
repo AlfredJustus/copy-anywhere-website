@@ -8,6 +8,7 @@ import { parseMarkdownToBlocks, jsonToNotionBlocks } from "@/lib/parity/blockFac
 import { ocrImage, readFileAsBase64, checkQuota, RateLimitError } from "@/lib/ocr";
 import { type FormatSlug } from "@/lib/config/models";
 import { Button } from "@/components/ui/button";
+import { useDropZone } from "@/hooks/useDropZone";
 
 type Phase = "idle" | "processing" | "ready" | "error" | "rate-limited";
 
@@ -20,10 +21,7 @@ export function ImageConverterTool({ formatSlug = "notion" }: ImageConverterTool
   const [phase, setPhase] = useState<Phase>("idle");
   const [fileName, setFileName] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [isDragOver, setIsDragOver] = useState(false);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const dragCounter = useRef(0);
 
   const handleFile = useCallback(async (file: File) => {
     setBlocks([]);
@@ -101,34 +99,10 @@ export function ImageConverterTool({ formatSlug = "notion" }: ImageConverterTool
 
   // ── Drag & drop ──
 
-  const onDragEnter = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter.current += 1;
-    if (e.dataTransfer.types.includes("Files")) setIsDragOver(true);
-  }, []);
-
-  const onDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter.current -= 1;
-    if (dragCounter.current === 0) setIsDragOver(false);
-  }, []);
-
-  const onDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const onDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter.current = 0;
-    setIsDragOver(false);
-
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith("image/")) handleFile(file);
-  }, [handleFile]);
+  const { isDragOver, dragHandlers } = useDropZone({
+    accept: (f) => f.type.startsWith("image/"),
+    onDrop: handleFile,
+  });
 
   const onFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -152,10 +126,10 @@ export function ImageConverterTool({ formatSlug = "notion" }: ImageConverterTool
         tabIndex={0}
         onClick={() => (phase === "idle" || phase === "error") && fileInputRef.current?.click()}
         onPaste={phase === "idle" || phase === "error" ? handlePaste : undefined}
-        onDragEnter={phase === "idle" || phase === "error" ? onDragEnter : undefined}
-        onDragLeave={phase === "idle" || phase === "error" ? onDragLeave : undefined}
-        onDragOver={phase === "idle" || phase === "error" ? onDragOver : undefined}
-        onDrop={phase === "idle" || phase === "error" ? onDrop : undefined}
+        onDragEnter={phase === "idle" || phase === "error" ? dragHandlers.onDragEnter : undefined}
+        onDragLeave={phase === "idle" || phase === "error" ? dragHandlers.onDragLeave : undefined}
+        onDragOver={phase === "idle" || phase === "error" ? dragHandlers.onDragOver : undefined}
+        onDrop={phase === "idle" || phase === "error" ? dragHandlers.onDrop : undefined}
       >
         <input
           ref={fileInputRef}
